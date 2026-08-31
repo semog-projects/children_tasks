@@ -1,10 +1,17 @@
 rules_version = '2';
 
-// Regras mínimas de bootstrap. O modelo de dados real e as regras por
-// coleção (famílias, membros, tarefas, ledger, recompensas) entram na
-// issue #6. Até lá: nega todo acesso direto do cliente.
+// Modelo de dados completo (famílias, membros, tarefas, ledger, recompensas)
+// e suas regras entram na issue #6. Por enquanto só a coleção de perfis de
+// usuário, criada no login (issue #5).
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // Perfil do responsável autenticado. Cada um lê/escreve só o próprio doc.
+    match /users/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // Nega tudo o mais até #6.
     match /{document=**} {
       allow read, write: if false;
     }

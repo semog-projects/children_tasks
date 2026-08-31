@@ -3,11 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/env.dart';
 import '../../../app/firebase/firebase_providers.dart';
+import '../../auth/application/auth_providers.dart';
 import '../application/roadmap_provider.dart';
 
-/// Tela inicial provisória. Serve de _placeholder_ até a navegação real
-/// (seleção de perfil / login) existir, e confirma que o scaffold,
-/// o tema e o Riverpod estão ligados.
+/// Tela inicial provisória (usuário já autenticado). Placeholder até a
+/// navegação real (seleção de perfil) existir.
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
@@ -15,10 +15,23 @@ class HomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final roadmap = ref.watch(roadmapProvider);
     final firebaseReady = ref.watch(firebaseReadyProvider);
+    final user = ref.watch(currentUserProvider);
+    final signingOut = ref.watch(authControllerProvider).isLoading;
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Tarefas das Crianças')),
+      appBar: AppBar(
+        title: const Text('Tarefas das Crianças'),
+        actions: [
+          IconButton(
+            onPressed: signingOut
+                ? null
+                : () => ref.read(authControllerProvider.notifier).signOut(),
+            icon: const Icon(Icons.logout),
+            tooltip: 'Sair',
+          ),
+        ],
+      ),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 480),
@@ -43,6 +56,22 @@ class HomeScreen extends ConsumerWidget {
                 style: theme.textTheme.bodyMedium,
                 textAlign: TextAlign.center,
               ),
+              const SizedBox(height: 16),
+              if (user != null)
+                Card(
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      foregroundImage: user.photoURL != null
+                          ? NetworkImage(user.photoURL!)
+                          : null,
+                      onForegroundImageError:
+                          user.photoURL != null ? (_, __) {} : null,
+                      child: const Icon(Icons.person),
+                    ),
+                    title: Text(user.displayName ?? 'Responsável'),
+                    subtitle: Text(user.email ?? user.uid),
+                  ),
+                ),
               const SizedBox(height: 16),
               Card(
                 color: firebaseReady

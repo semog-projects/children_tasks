@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../features/home/presentation/home_screen.dart';
+import '../features/auth/presentation/auth_gate.dart';
 import 'theme.dart';
 
 /// Locale único do app. O projeto é PT-BR apenas (ver README).
@@ -26,7 +26,7 @@ class ChildrenTasksApp extends ConsumerWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      home: const HomeScreen(),
+      home: const AuthGate(),
     );
   }
 }
