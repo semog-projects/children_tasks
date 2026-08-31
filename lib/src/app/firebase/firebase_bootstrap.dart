@@ -1,0 +1,58 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
+
+import '../env.dart';
+import 'firebase_options_dev.dart' as dev;
+import 'firebase_options_prod.dart' as prod;
+
+/// Resultado da inicialização do Firebase.
+enum FirebaseInitStatus {
+  /// Inicializado e pronto.
+  ready,
+
+  /// `flutterfire configure` ainda não rodou para este flavor — o app segue
+  /// funcionando sem backend (estado de bootstrap).
+  notConfigured,
+}
+
+FirebaseOptions get _optionsForFlavor => switch (AppFlavor.current) {
+      AppFlavor.dev => dev.DefaultFirebaseOptions.currentPlatform,
+      AppFlavor.prod => prod.DefaultFirebaseOptions.currentPlatform,
+    };
+
+/// Inicializa o Firebase para o [AppFlavor] atual e, em dev, aponta os SDKs
+/// para o Emulator Suite. Idempotente.
+Future<FirebaseInitStatus> initFirebase() async {
+  final FirebaseOptions options;
+  try {
+    options = _optionsForFlavor;
+  } on UnsupportedError catch (e) {
+    debugPrint('Firebase não configurado (${AppFlavor.current.name}): $e');
+    return FirebaseInitStatus.notConfigured;
+  }
+
+  if (Firebase.apps.isEmpty) {
+    await Firebase.initializeApp(options: options);
+  }
+
+  if (useFirebaseEmulator) {
+    _useEmulators();
+  }
+
+  return FirebaseInitStatus.ready;
+}
+
+bool _emulatorsConnected = false;
+
+void _useEmulators() {
+  if (_emulatorsConnected) return;
+  _emulatorsConnected = true;
+
+  const host = firebaseEmulatorHost;
+  FirebaseFirestore.instance.useFirestoreEmulator(host, 8080);
+  // ignore: discarded_futures — a API do plugin é assíncrona mas fire-and-forget aqui.
+  FirebaseAuth.instance.useAuthEmulator(host, 9099);
+  debugPrint('Firebase: usando emuladores em $host (firestore:8080, auth:9099)');
+}

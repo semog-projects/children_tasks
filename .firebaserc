@@ -1,0 +1,7 @@
+{
+  "projects": {
+    "default": "TODO-projeto-dev",
+    "dev": "TODO-projeto-dev",
+    "prod": "TODO-projeto-prod"
+  }
+}

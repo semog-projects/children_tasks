@@ -14,10 +14,20 @@ build/
 .vscode/
 
 # Firebase
+# Arquivos nativos gerados pelo flutterfire (regeneráveis; contêm ids do
+# projeto). O init em Dart usa lib/src/app/firebase/firebase_options_*.dart,
+# que SÃO versionados (não são segredos — segurança fica nas Security Rules).
 google-services.json
 GoogleService-Info.plist
-firebase_options.dart
 lib/firebase_options.dart
+.firebase/
+firebase-debug*.log
+firestore-debug.log
+pubsub-debug.log
+ui-debug.log
+# Service accounts / chaves privadas — NUNCA versionar
+*serviceAccount*.json
+functions/.runtimeconfig.json
 
 # OS
 .DS_Store
