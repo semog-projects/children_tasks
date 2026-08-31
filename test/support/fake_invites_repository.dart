@@ -15,16 +15,37 @@ class FakeInvitesRepository implements InvitesRepository {
   /// Roda em `accept`. Lança [InviteException] para simular código inválido.
   final Future<void> Function(String code)? onAccept;
 
-  final List<({String familyId, String memberId})> createdInvites = [];
+  final List<({String familyId, String memberId})> createdChildInvites = [];
+  final List<({String familyId, String? email})> createdGuardianInvites = [];
   final List<String> acceptedCodes = [];
+  final List<String> revokedCodes = [];
+  List<PendingInvite> pending = const [];
 
   @override
   Future<FamilyInvite> createChildInvite({
     required String familyId,
     required String memberId,
   }) async {
-    createdInvites.add((familyId: familyId, memberId: memberId));
+    createdChildInvites.add((familyId: familyId, memberId: memberId));
     return _invite;
+  }
+
+  @override
+  Future<FamilyInvite> createGuardianInvite({
+    required String familyId,
+    String? email,
+  }) async {
+    createdGuardianInvites.add((familyId: familyId, email: email));
+    return _invite;
+  }
+
+  @override
+  Future<List<PendingInvite>> listInvites(String familyId) async => pending;
+
+  @override
+  Future<void> revoke(String code) async {
+    revokedCodes.add(code);
+    pending = pending.where((i) => i.code != code).toList();
   }
 
   @override

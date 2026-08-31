@@ -35,6 +35,21 @@ function normalizeEmail(email: string | null | undefined): string | null {
   return clean && clean.length > 0 ? clean : null;
 }
 
+async function assertInviteGuardian(
+  db: Firestore,
+  familyId: string,
+  uid: string,
+): Promise<void> {
+  const snap = await db.doc(`families/${familyId}`).get();
+  const guardianUids = (snap.data()?.guardianUids ?? []) as string[];
+  if (!snap.exists || !guardianUids.includes(uid)) {
+    throw new InviteError(
+      "permission-denied",
+      "Você não é responsável desta família.",
+    );
+  }
+}
+
 export interface CreateInviteParams {
   familyId: string;
   createdByUid: string;
@@ -60,14 +75,7 @@ export async function createInvite(
   db: Firestore,
   params: CreateInviteParams,
 ): Promise<CreateInviteResult> {
-  const familySnap = await db.doc(`families/${params.familyId}`).get();
-  const guardianUids = (familySnap.data()?.guardianUids ?? []) as string[];
-  if (!familySnap.exists || !guardianUids.includes(params.createdByUid)) {
-    throw new InviteError(
-      "permission-denied",
-      "Você não é responsável desta família.",
-    );
-  }
+  await assertInviteGuardian(db, params.familyId, params.createdByUid);
 
   if (params.role === "child") {
     if (!params.memberId) {
@@ -113,6 +121,57 @@ export async function createInvite(
     }
   }
   throw new InviteError("failed-precondition", "Não foi possível gerar um código. Tente de novo.");
+}
+
+export interface OpenInvite {
+  code: string;
+  role: "child" | "guardian";
+  email: string | null;
+  memberId: string | null;
+  expiresAt: Date;
+}
+
+/** Convites em aberto (não aceitos, não expirados) de uma família. */
+export async function listOpenInvites(
+  db: Firestore,
+  familyId: string,
+  callerUid: string,
+  now: Date = new Date(),
+): Promise<OpenInvite[]> {
+  await assertInviteGuardian(db, familyId, callerUid);
+  const snap = await db
+    .collection("familyInvites")
+    .where("familyId", "==", familyId)
+    .where("acceptedByUid", "==", null)
+    .get();
+  return snap.docs
+    .map((d) => {
+      const data = d.data();
+      return {
+        code: d.id,
+        role: data.role as "child" | "guardian",
+        email: (data.email as string | null) ?? null,
+        memberId: (data.memberId as string | null) ?? null,
+        expiresAt: (data.expiresAt as Timestamp).toDate(),
+      };
+    })
+    .filter((i) => i.expiresAt.getTime() > now.getTime());
+}
+
+/** Revoga (apaga) um convite ainda não aceito. Idempotente. */
+export async function revokeInvite(
+  db: Firestore,
+  code: string,
+  callerUid: string,
+): Promise<void> {
+  const ref = db.doc(`familyInvites/${code.trim().toUpperCase()}`);
+  const snap = await ref.get();
+  if (!snap.exists) return;
+  await assertInviteGuardian(db, snap.data()!.familyId as string, callerUid);
+  if (snap.data()!.acceptedByUid) {
+    throw new InviteError("failed-precondition", "Convite já utilizado.");
+  }
+  await ref.delete();
 }
 
 export interface AcceptInviteParams {

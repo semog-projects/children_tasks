@@ -10,6 +10,7 @@
  * - sendDailyReminders: agendada, lembrete diário de tarefas pendentes (#14)
  * - createFamilyInvite/acceptFamilyInvite: callable, convite e vínculo de
  *   criança / responsável à família (#33)
+ * - listFamilyInvites/revokeFamilyInvite: callable, convites em aberto (#36)
  */
 
 import { initializeApp } from "firebase-admin/app";
@@ -23,6 +24,8 @@ import {
   acceptInvite,
   createInvite,
   InviteError,
+  listOpenInvites,
+  revokeInvite,
 } from "./family/invites.js";
 import { notifyGuardians, notifyMember } from "./notifications/messaging.js";
 import { sendDueReminders } from "./notifications/reminders.js";
@@ -255,6 +258,49 @@ export const createFamilyInvite = onCall({ region: REGION }, async (request) => 
       email: request.data?.email as string | undefined,
     });
     return { code, expiresAt: expiresAt.toISOString() };
+  } catch (error) {
+    if (error instanceof InviteError) {
+      throw new HttpsError(error.code, error.message);
+    }
+    throw error;
+  }
+});
+
+/** Callable (responsável): convites em aberto da família. */
+export const listFamilyInvites = onCall({ region: REGION }, async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid) throw new HttpsError("unauthenticated", "Faça login.");
+  const familyId = request.data?.familyId as string | undefined;
+  if (!familyId) throw new HttpsError("invalid-argument", "familyId é obrigatório.");
+
+  const db = getFirestore();
+  try {
+    const invites = await listOpenInvites(db, familyId, uid);
+    return {
+      invites: invites.map((i) => ({
+        ...i,
+        expiresAt: i.expiresAt.toISOString(),
+      })),
+    };
+  } catch (error) {
+    if (error instanceof InviteError) {
+      throw new HttpsError(error.code, error.message);
+    }
+    throw error;
+  }
+});
+
+/** Callable (responsável): revoga um convite ainda não aceito. */
+export const revokeFamilyInvite = onCall({ region: REGION }, async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid) throw new HttpsError("unauthenticated", "Faça login.");
+  const code = request.data?.code as string | undefined;
+  if (!code) throw new HttpsError("invalid-argument", "code é obrigatório.");
+
+  const db = getFirestore();
+  try {
+    await revokeInvite(db, code, uid);
+    return { ok: true };
   } catch (error) {
     if (error instanceof InviteError) {
       throw new HttpsError(error.code, error.message);

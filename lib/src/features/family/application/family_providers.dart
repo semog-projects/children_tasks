@@ -98,17 +98,6 @@ class FamilyController extends AsyncNotifier<void> {
     );
   }
 
-  Future<void> addGuardianByUid(String uid) async {
-    final family = ref.read(currentFamilyProvider).asData?.value;
-    if (family == null) return;
-    final clean = uid.trim();
-    if (clean.isEmpty || family.guardianUids.contains(clean)) return;
-    state = const AsyncLoading();
-    state = await AsyncValue.guard(
-      () => ref.read(familyRepositoryProvider).addGuardian(family.id, clean),
-    );
-  }
-
   /// Mantém o nome/foto do responsável logado atualizado no doc da família.
   Future<void> healOwnProfile() async {
     final user = ref.read(currentUserProvider);

@@ -55,18 +55,6 @@ class FamilyRepository {
     });
   }
 
-  /// Adiciona outro responsável pelo uid. O nome fica como placeholder até
-  /// essa pessoa abrir o app (auto-heal em [healGuardianProfile]).
-  Future<void> addGuardian(String familyId, String uid) {
-    return _refs.family(familyId).update({
-      'guardianUids': FieldValue.arrayUnion([uid]),
-      'guardians': FieldValue.arrayUnion([
-        GuardianRef(uid: uid, displayName: 'Responsável').toMap(),
-      ]),
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
-  }
-
   /// Atualiza o nome/foto do responsável [me] no doc da família, se estiver
   /// desatualizado. Chamado quando o responsável abre o app.
   Future<void> healGuardianProfile(Family family, GuardianRef me) async {

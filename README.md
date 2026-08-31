@@ -25,7 +25,8 @@ O objetivo é ajudar famílias a organizar a rotina das crianças de forma lúdi
 
 - [x] Autenticação com **Google Sign-In** — web via popup; Android/iOS via
       `google_sign_in` (precisa de `GOOGLE_SERVER_CLIENT_ID`)
-- [x] Família gerenciada no app (onboarding, nome, fuso, 2º responsável por ID)
+- [x] Família gerenciada no app (onboarding, nome, fuso); 2º responsável por
+      convite (código/e-mail), com lista de convites pendentes e revogação — issue #36
 - [x] Cadastro/edição/remoção de crianças (nome, cor, nascimento)
 - [x] Papéis resolvidos pós-login: responsável de alguma família → painel
       completo; criança com login próprio → visão simplificada; sem família →

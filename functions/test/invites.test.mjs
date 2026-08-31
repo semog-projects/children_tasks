@@ -8,7 +8,13 @@ import { after, before, beforeEach, test } from "node:test";
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 
-import { acceptInvite, createInvite, InviteError } from "../lib/family/invites.js";
+import {
+  acceptInvite,
+  createInvite,
+  InviteError,
+  listOpenInvites,
+  revokeInvite,
+} from "../lib/family/invites.js";
 
 process.env.GCLOUD_PROJECT ??= "demo-children-tasks";
 
@@ -242,5 +248,70 @@ test("código inexistente é not-found", async () => {
   await assert.rejects(
     () => acceptInvite(db, { code: "ZZZZZZZZ", uid: "x" }),
     (e) => e instanceof InviteError && e.code === "not-found",
+  );
+});
+
+test("listOpenInvites: só os abertos, e só para responsável", async () => {
+  const { code: c1 } = await createInvite(db, {
+    familyId,
+    createdByUid: "g1",
+    role: "guardian",
+    email: "papai@example.com",
+  });
+  const { code: c2 } = await createInvite(db, {
+    familyId,
+    createdByUid: "g1",
+    role: "child",
+    memberId: biaId,
+  });
+  await acceptInvite(db, { code: c2, uid: "uid-bia" });
+
+  const open = await listOpenInvites(db, familyId, "g1");
+  assert.deepEqual(
+    open.map((i) => i.code),
+    [c1],
+  );
+  assert.equal(open[0].email, "papai@example.com");
+
+  await assert.rejects(
+    () => listOpenInvites(db, familyId, "estranho"),
+    (e) => e instanceof InviteError && e.code === "permission-denied",
+  );
+});
+
+test("listOpenInvites: esconde os expirados", async () => {
+  await createInvite(db, {
+    familyId,
+    createdByUid: "g1",
+    role: "guardian",
+    email: "velho@example.com",
+    now: new Date("2026-01-01T00:00:00Z"),
+    ttlDays: 1,
+  });
+  const open = await listOpenInvites(db, familyId, "g1", new Date("2026-02-01T00:00:00Z"));
+  assert.equal(open.length, 0);
+});
+
+test("revokeInvite: responsável apaga; idempotente; não apaga aceito", async () => {
+  const { code } = await createInvite(db, {
+    familyId,
+    createdByUid: "g1",
+    role: "guardian",
+    email: "x@example.com",
+  });
+  await revokeInvite(db, code, "g1");
+  assert.equal((await db.doc(`familyInvites/${code}`).get()).exists, false);
+  await revokeInvite(db, code, "g1"); // idempotente
+
+  const { code: accepted } = await createInvite(db, {
+    familyId,
+    createdByUid: "g1",
+    role: "child",
+    memberId: biaId,
+  });
+  await acceptInvite(db, { code: accepted, uid: "uid-bia" });
+  await assert.rejects(
+    () => revokeInvite(db, accepted, "g1"),
+    (e) => e instanceof InviteError && e.code === "failed-precondition",
   );
 });

@@ -55,6 +55,14 @@
         { "fieldPath": "active", "order": "ASCENDING" },
         { "fieldPath": "category", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "familyInvites",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "familyId", "order": "ASCENDING" },
+        { "fieldPath": "acceptedByUid", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []
