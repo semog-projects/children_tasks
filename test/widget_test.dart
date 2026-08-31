@@ -7,14 +7,14 @@ import 'support/test_harness.dart';
 
 void main() {
   testWidgets('deslogado: mostra a tela de login', (tester) async {
-    final app = buildTestApp();
+    final app = await buildTestApp();
     await pumpSettled(tester, app.widget);
 
     expect(find.text('Entrar com Google'), findsOneWidget);
   });
 
   testWidgets('Firebase indisponível: bloqueia antes do login', (tester) async {
-    final app = buildTestApp(firebase: FirebaseInitStatus.notConfigured);
+    final app = await buildTestApp(firebase: FirebaseInitStatus.notConfigured);
     await pumpSettled(tester, app.widget);
 
     expect(find.text('Backend indisponível'), findsOneWidget);
@@ -22,7 +22,7 @@ void main() {
   });
 
   testWidgets('logado sem família: abre o onboarding', (tester) async {
-    final app = buildTestApp(
+    final app = await buildTestApp(
       auth: FakeAuthRepository(initialUser: FakeAuthRepository.user()),
     );
     await pumpSettled(tester, app.widget);
@@ -31,7 +31,7 @@ void main() {
   });
 
   testWidgets('logado com família: abre a home com as crianças', (tester) async {
-    final app = buildTestApp(
+    final app = await buildTestApp(
       auth: FakeAuthRepository(initialUser: FakeAuthRepository.user()),
     );
     await seedFamily(app.db, uid: 'uid-ana', name: 'Família Silva', childNames: ['Bia']);
@@ -42,7 +42,7 @@ void main() {
   });
 
   testWidgets('usa locale pt-BR', (tester) async {
-    final app = buildTestApp();
+    final app = await buildTestApp();
     await pumpSettled(tester, app.widget);
 
     final materialApp = tester.widget<MaterialApp>(find.byType(MaterialApp));

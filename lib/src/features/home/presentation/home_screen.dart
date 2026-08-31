@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../common/avatar_colors.dart';
-import '../../auth/application/auth_providers.dart';
 import '../../family/application/family_providers.dart';
 import '../../family/presentation/family_screen.dart';
 import '../../points/application/points_providers.dart';
+import '../../profiles/application/profile_providers.dart';
 import '../../rewards/presentation/catalog_screen.dart';
 import '../../rewards/presentation/rewards_screen.dart';
 import '../../tasks/application/approval_providers.dart';
@@ -23,7 +23,6 @@ class HomeScreen extends ConsumerWidget {
     final family = ref.watch(currentFamilyProvider).asData?.value;
     final children = ref.watch(familyChildrenProvider);
     final pendingCount = ref.watch(pendingApprovalsProvider).asData?.value.length ?? 0;
-    final signingOut = ref.watch(authControllerProvider).isLoading;
 
     return Scaffold(
       appBar: AppBar(
@@ -62,11 +61,10 @@ class HomeScreen extends ConsumerWidget {
             ),
           ),
           IconButton(
-            onPressed: signingOut
-                ? null
-                : () => ref.read(authControllerProvider.notifier).signOut(),
-            icon: const Icon(Icons.logout),
-            tooltip: 'Sair',
+            tooltip: 'Trocar de perfil',
+            icon: const Icon(Icons.switch_account),
+            onPressed: () =>
+                ref.read(activeProfileProvider.notifier).backToSelector(),
           ),
         ],
       ),

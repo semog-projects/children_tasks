@@ -27,8 +27,8 @@ O objetivo é ajudar famílias a organizar a rotina das crianças de forma lúdi
       Android/iOS via `google_sign_in` (precisa de `GOOGLE_SERVER_CLIENT_ID`)
 - [x] Família gerenciada no app (onboarding, nome, fuso, 2º responsável por ID)
 - [x] Cadastro/edição/remoção de crianças (nome, cor, nascimento)
-- [ ] App único com **perfis**: modo responsável (protegido por PIN/senha) e
-      modo criança
+- [x] Perfis: seletor na abertura, **modo responsável protegido por PIN**
+      (4 dígitos, hash+salt, lockout após 5 erros), modo criança simplificado
 - [x] Criação/edição/arquivamento de tarefas (pontos, categoria, atribuição,
       repetição, aprovação) com filtros por criança/categoria
 - [x] **Tarefas recorrentes** geradas por Cloud Function (agendada de hora em

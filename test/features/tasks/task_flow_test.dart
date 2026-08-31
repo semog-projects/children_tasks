@@ -13,7 +13,7 @@ Future<void> _openTasks(WidgetTester tester) async {
 
 void main() {
   testWidgets('cria uma tarefa pelo formulário', (tester) async {
-    final app = buildTestApp(
+    final app = await buildTestApp(
       auth: FakeAuthRepository(initialUser: FakeAuthRepository.user()),
     );
     final familyId = await seedFamily(app.db, uid: 'uid-ana');
@@ -38,7 +38,7 @@ void main() {
   });
 
   testWidgets('valida título e pontos', (tester) async {
-    final app = buildTestApp(
+    final app = await buildTestApp(
       auth: FakeAuthRepository(initialUser: FakeAuthRepository.user()),
     );
     await seedFamily(app.db, uid: 'uid-ana');
@@ -57,7 +57,7 @@ void main() {
   });
 
   testWidgets('arquivar tira da lista ativa e reativar traz de volta', (tester) async {
-    final app = buildTestApp(
+    final app = await buildTestApp(
       auth: FakeAuthRepository(initialUser: FakeAuthRepository.user()),
     );
     final familyId = await seedFamily(app.db, uid: 'uid-ana');
@@ -89,7 +89,7 @@ void main() {
   });
 
   testWidgets('home mostra o progresso das tarefas de hoje por criança', (tester) async {
-    final app = buildTestApp(
+    final app = await buildTestApp(
       auth: FakeAuthRepository(initialUser: FakeAuthRepository.user()),
     );
     final familyId = await seedFamily(app.db, uid: 'uid-ana', childNames: ['Bia']);

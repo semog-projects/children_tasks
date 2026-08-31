@@ -40,7 +40,7 @@ Future<String> _seedReward(
 
 void main() {
   testWidgets('responsável cria uma recompensa', (tester) async {
-    final app = buildTestApp(
+    final app = await buildTestApp(
       auth: FakeAuthRepository(initialUser: FakeAuthRepository.user()),
     );
     final familyId = await seedFamily(app.db, uid: 'uid-ana', childNames: ['Bia']);
@@ -64,7 +64,7 @@ void main() {
   });
 
   testWidgets('catálogo habilita resgate só com saldo', (tester) async {
-    final app = buildTestApp(
+    final app = await buildTestApp(
       auth: FakeAuthRepository(initialUser: FakeAuthRepository.user()),
     );
     final familyId = await seedFamily(app.db, uid: 'uid-ana', childNames: ['Bia']);
@@ -98,7 +98,7 @@ void main() {
   });
 
   testWidgets('responsável marca resgate como entregue', (tester) async {
-    final app = buildTestApp(
+    final app = await buildTestApp(
       auth: FakeAuthRepository(initialUser: FakeAuthRepository.user()),
     );
     final familyId = await seedFamily(app.db, uid: 'uid-ana', childNames: ['Bia']);

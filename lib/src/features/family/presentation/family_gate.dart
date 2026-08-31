@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../home/presentation/home_screen.dart';
+import '../../profiles/presentation/profile_gate.dart';
 import '../../tasks/application/task_instances_providers.dart';
 import '../application/family_providers.dart';
 import 'family_onboarding_screen.dart';
@@ -39,7 +39,7 @@ class _FamilyGateState extends ConsumerState<FamilyGate> {
             ),
           ),
           data: (family) =>
-              family == null ? const FamilyOnboardingScreen() : const HomeScreen(),
+              family == null ? const FamilyOnboardingScreen() : const ProfileGate(),
         );
   }
 }
