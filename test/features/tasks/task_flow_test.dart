@@ -7,7 +7,7 @@ import '../../support/fake_auth_repository.dart';
 import '../../support/test_harness.dart';
 
 Future<void> _openTasks(WidgetTester tester) async {
-  await tester.tap(find.byTooltip('Tarefas'));
+  await tester.tap(find.byTooltip('Definição de tarefas'));
   await tester.pumpAndSettle();
 }
 

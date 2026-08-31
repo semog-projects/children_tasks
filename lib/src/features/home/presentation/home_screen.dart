@@ -2,15 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../common/avatar_colors.dart';
-import '../../../data/models/task_instance.dart';
+import '../../../data/data_providers.dart';
 import '../../auth/application/auth_providers.dart';
 import '../../family/application/family_providers.dart';
 import '../../family/presentation/family_screen.dart';
+import '../../tasks/application/approval_providers.dart';
 import '../../tasks/application/task_instances_providers.dart';
+import '../../tasks/presentation/approvals_screen.dart';
 import '../../tasks/presentation/tasks_screen.dart';
+import '../../tasks/presentation/today_screen.dart';
 
-/// Tela inicial do responsável autenticado, com a família já criada.
-/// Ainda provisória — as tarefas do dia entram nas próximas issues.
+/// Tela inicial do responsável: crianças, tarefas de hoje e aprovações.
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
@@ -18,6 +20,7 @@ class HomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final family = ref.watch(currentFamilyProvider).asData?.value;
     final children = ref.watch(familyChildrenProvider);
+    final pendingCount = ref.watch(pendingApprovalsProvider).asData?.value.length ?? 0;
     final signingOut = ref.watch(authControllerProvider).isLoading;
 
     return Scaffold(
@@ -25,7 +28,18 @@ class HomeScreen extends ConsumerWidget {
         title: Text(family?.name ?? 'Tarefas das Crianças'),
         actions: [
           IconButton(
-            tooltip: 'Tarefas',
+            tooltip: 'Aprovações',
+            icon: Badge(
+              isLabelVisible: pendingCount > 0,
+              label: Text('$pendingCount'),
+              child: const Icon(Icons.rule),
+            ),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const ApprovalsScreen()),
+            ),
+          ),
+          IconButton(
+            tooltip: 'Definição de tarefas',
             icon: const Icon(Icons.checklist_rounded),
             onPressed: () => Navigator.of(context).push(
               MaterialPageRoute<void>(builder: (_) => const TasksScreen()),
@@ -68,10 +82,15 @@ class HomeScreen extends ConsumerWidget {
                     ),
                   )
                 else ...[
-                  Text(
-                    'Crianças',
-                    style: Theme.of(context).textTheme.titleMedium,
+                  FilledButton.tonalIcon(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(builder: (_) => const TodayScreen()),
+                    ),
+                    icon: const Icon(Icons.today),
+                    label: const Text('Tarefas de hoje'),
                   ),
+                  const SizedBox(height: 16),
+                  Text('Crianças', style: Theme.of(context).textTheme.titleMedium),
                   const SizedBox(height: 8),
                   for (final child in list)
                     _ChildCard(
@@ -98,12 +117,13 @@ class _ChildCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final family = ref.watch(currentFamilyProvider).asData?.value;
     final instances = ref.watch(childTodayInstancesProvider(childId)).asData?.value;
-    final done = instances
-        ?.where((i) =>
-            i.status == TaskInstanceStatus.approved ||
-            i.status == TaskInstanceStatus.awaitingApproval)
-        .length;
+    final balance = family == null
+        ? null
+        : ref.watch(_balanceProvider((familyId: family.id, memberId: childId))).asData?.value;
+
+    final done = instances?.where((i) => i.isApproved).length;
     final total = instances?.length;
 
     return Card(
@@ -123,7 +143,18 @@ class _ChildCard extends ConsumerWidget {
                   ? 'Sem tarefas hoje'
                   : '$done de $total tarefas hoje',
         ),
+        trailing: balance == null
+            ? null
+            : Text('$balance pts', style: Theme.of(context).textTheme.titleMedium),
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute<void>(builder: (_) => TodayScreen(onlyChildId: childId)),
+        ),
       ),
     );
   }
 }
+
+final _balanceProvider =
+    StreamProvider.family<int, ({String familyId, String memberId})>((ref, key) {
+  return ref.watch(ledgerRepositoryProvider).watchBalance(key.familyId, key.memberId);
+});

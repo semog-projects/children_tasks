@@ -85,11 +85,29 @@ service cloud.firestore {
 
       match /taskInstances/{instanceId} {
         allow read: if isGuardian(familyId);
-        allow create, update: if isGuardian(familyId)
+
+        allow create: if isGuardian(familyId)
           && request.resource.data.status in
              ['pending', 'awaitingApproval', 'approved', 'rejected']
           && request.resource.data.taskId is string
           && request.resource.data.memberId is string;
+
+        // O cliente muda status e revisão, mas NÃO o crédito (pointsAwarded)
+        // — isso é a Cloud Function que faz. E só chega a `approved` vindo de
+        // `awaitingApproval` ou quando a tarefa não exige aprovação.
+        allow update: if isGuardian(familyId)
+          && request.resource.data.status in
+             ['pending', 'awaitingApproval', 'approved', 'rejected']
+          && request.resource.data.taskId == resource.data.taskId
+          && request.resource.data.memberId == resource.data.memberId
+          && request.resource.data.get('pointsAwarded', null)
+             == resource.data.get('pointsAwarded', null)
+          && (
+            request.resource.data.status != 'approved'
+            || resource.data.status == 'awaitingApproval'
+            || resource.data.requiresApproval == false
+          );
+
         allow delete: if isGuardian(familyId);
       }
 

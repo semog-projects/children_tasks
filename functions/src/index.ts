@@ -3,17 +3,20 @@
  *
  * - generateDailyInstances: agendada, materializa as tarefas do dia (#10)
  * - generateInstances: callable, para o app forçar a geração ao abrir (#10)
+ * - onTaskInstanceWritten: credita pontos no ledger ao aprovar (#11)
  *
- * Próximas: crédito de pontos na aprovação (#11), notificações FCM (#14).
+ * Próxima: notificações FCM (#14).
  */
 
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
+import { onDocumentWritten } from "firebase-functions/v2/firestore";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { logger } from "firebase-functions/v2";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 
 import { generateAllFamilies, generateForFamily } from "./tasks/generate.js";
+import { onInstanceStatusChange } from "./tasks/ledger.js";
 
 initializeApp();
 
@@ -65,5 +68,26 @@ export const generateInstances = onCall(
       results.push(await generateForFamily(db, id));
     }
     return { results };
+  },
+);
+
+/**
+ * Ao aprovar uma ocorrência (`status` -> `approved`), credita os pontos no
+ * `ledger` de forma idempotente.
+ */
+export const onTaskInstanceWritten = onDocumentWritten(
+  {
+    document: "families/{familyId}/taskInstances/{instanceId}",
+    region: REGION,
+  },
+  async (event) => {
+    const { familyId, instanceId } = event.params;
+    await onInstanceStatusChange(
+      getFirestore(),
+      familyId,
+      instanceId,
+      event.data?.before.data(),
+      event.data?.after.data(),
+    );
   },
 );
