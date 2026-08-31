@@ -63,6 +63,9 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
+          cache-dependency-path: |
+            firestore-tests/package-lock.json
+            functions/package-lock.json
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
