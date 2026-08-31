@@ -1,5 +1,7 @@
 # children_tasks
 
+[![CI](https://github.com/semog-projects/children_tasks/actions/workflows/ci.yml/badge.svg)](https://github.com/semog-projects/children_tasks/actions/workflows/ci.yml)
+
 Aplicativo em **Flutter** para pais criarem e acompanharem **tarefas diárias
 de crianças**, com sistema de pontos e recompensas, integrado ao login Google
 e ao conceito de família do Google.
@@ -216,6 +218,17 @@ Security Rules (issue #6).
 
 O trabalho é organizado via **GitHub Projects** (sprint harness). Todo pedido
 não-trivial vira uma Issue vinculada ao Project antes de ir para o código.
+
+Cada PR roda o workflow **CI** (`.github/workflows/ci.yml`):
+
+| job | o que roda |
+| --- | --- |
+| Flutter | `flutter analyze` + `flutter test --coverage` |
+| Cloud Functions | `npm ci` + `npm run lint` + `npm run build` em `functions/` |
+| Firestore Security Rules | `firebase emulators:exec` + testes de `firestore-tests/` |
+
+Recomendado: proteger a branch `main` exigindo esses 3 checks antes do merge
+(Settings → Branches → Branch protection rules).
 
 ## Licença
 
