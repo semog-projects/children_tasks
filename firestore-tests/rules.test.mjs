@@ -363,6 +363,26 @@ test('criança marca a própria tarefa: pending -> awaitingApproval', async () =
   );
 });
 
+test('criança limpa o rejectionReason ao refazer uma tarefa recusada', async () => {
+  await testEnv.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), `families/${FAMILY}/taskInstances/ti-redo`), {
+      taskId: 't1',
+      memberId: 'm-bia',
+      memberUid: CHILD,
+      status: 'pending',
+      requiresApproval: true,
+      rejectionReason: 'a cama ainda está bagunçada',
+    });
+  });
+  await assertSucceeds(
+    updateDoc(doc(childDb(), `families/${FAMILY}/taskInstances/ti-redo`), {
+      status: 'awaitingApproval',
+      completedAt: new Date(),
+      rejectionReason: null,
+    }),
+  );
+});
+
 test('criança não pula para approved quando a tarefa exige aprovação', async () => {
   await assertFails(
     updateDoc(doc(childDb(), `families/${FAMILY}/taskInstances/ti-bia`), {

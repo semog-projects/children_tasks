@@ -12,9 +12,11 @@ Future<void> _ledger(
   required int points,
   required String type,
   required DateTime at,
+  String? memberUid,
 }) async {
   await db.collection('families').doc(familyId).collection('ledger').add({
     'memberId': memberId,
+    'memberUid': ?memberUid,
     'type': type,
     'points': points,
     'sourceType': type == 'redeem' ? 'reward' : 'taskInstance',
@@ -116,7 +118,11 @@ void main() {
       'stock': null,
     });
     await _ledger(app.db, familyId,
-        memberId: child.id, points: 30, type: 'earn', at: DateTime.now());
+        memberId: child.id,
+        memberUid: 'uid-bia',
+        points: 30,
+        type: 'earn',
+        at: DateTime.now());
 
     await pumpSettled(tester, app.widget);
 

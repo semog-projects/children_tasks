@@ -36,8 +36,9 @@ O objetivo é ajudar famílias a organizar a rotina das crianças de forma lúdi
 - [x] Security Rules com o papel "criança": lê a própria família/tarefas/
       recompensas e só os próprios `taskInstances`/`ledger` (`memberUid`);
       auto-aprovação barrada no servidor — issue #34
-- [ ] Ações da criança no próprio login — marcar tarefa, pedir resgate,
-      notificações (#35)
+- [x] Ações da criança no próprio login: marca a própria tarefa, pede resgate
+      (`redeemReward` aceita a criança), leituras por `memberUid`; notificações
+      de tarefa aprovada/recusada e recompensa entregue — issue #35
 - [x] Criação/edição/arquivamento de tarefas (pontos, categoria, atribuição,
       repetição, aprovação) com filtros por criança/categoria
 - [x] **Tarefas recorrentes** geradas por Cloud Function (agendada de hora em

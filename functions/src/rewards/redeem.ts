@@ -3,7 +3,7 @@ import { FieldValue, Firestore } from "firebase-admin/firestore";
 /** Erro de regra de negócio no resgate. `code` vira o code do HttpsError. */
 export class RedeemError extends Error {
   constructor(
-    readonly code: "not-found" | "failed-precondition",
+    readonly code: "not-found" | "failed-precondition" | "permission-denied",
     message: string,
   ) {
     super(message);
@@ -14,6 +14,62 @@ export interface RedeemResult {
   redemptionId: string;
   cost: number;
   newBalance: number;
+}
+
+export interface RedeemTarget {
+  memberId: string;
+  /** `linkedUid` da criança (quando tem login) — gravado em redemption/ledger. */
+  memberUid: string | null;
+}
+
+/**
+ * Descobre para qual criança é o resgate e o `memberUid` a gravar (#35):
+ * - **responsável** resgata para qualquer criança (`requestedMemberId`);
+ * - **criança** resgata só para si — ignora `requestedMemberId` e usa o
+ *   `member` vinculado à conta.
+ */
+export async function resolveRedeemTarget(
+  db: Firestore,
+  familyId: string,
+  callerUid: string,
+  requestedMemberId: string | undefined,
+): Promise<RedeemTarget> {
+  const family = (await db.doc(`families/${familyId}`).get()).data() ?? {};
+  const guardianUids = (family.guardianUids ?? []) as string[];
+  const childUids = (family.childUids ?? []) as string[];
+
+  if (guardianUids.includes(callerUid)) {
+    if (!requestedMemberId) {
+      throw new RedeemError("failed-precondition", "memberId é obrigatório.");
+    }
+    const member = await db
+      .doc(`families/${familyId}/members/${requestedMemberId}`)
+      .get();
+    return {
+      memberId: requestedMemberId,
+      memberUid: (member.data()?.linkedUid as string | undefined) ?? null,
+    };
+  }
+
+  if (childUids.includes(callerUid)) {
+    const snap = await db
+      .collection(`families/${familyId}/members`)
+      .where("linkedUid", "==", callerUid)
+      .limit(1)
+      .get();
+    if (snap.empty) {
+      throw new RedeemError(
+        "permission-denied",
+        "Conta não vinculada a uma criança.",
+      );
+    }
+    return { memberId: snap.docs[0].id, memberUid: callerUid };
+  }
+
+  throw new RedeemError(
+    "permission-denied",
+    "Você não faz parte desta família.",
+  );
 }
 
 /**
@@ -27,10 +83,11 @@ export async function redeemReward(
     familyId: string;
     rewardId: string;
     memberId: string;
+    memberUid?: string | null;
     requestedByUid: string;
   },
 ): Promise<RedeemResult> {
-  const { familyId, rewardId, memberId, requestedByUid } = params;
+  const { familyId, rewardId, memberId, memberUid, requestedByUid } = params;
   const rewardRef = db.doc(`families/${familyId}/rewards/${rewardId}`);
   const ledgerCol = db.collection(`families/${familyId}/ledger`);
   const redemptionRef = db.collection(`families/${familyId}/redemptions`).doc();
@@ -63,8 +120,10 @@ export async function redeemReward(
       throw new RedeemError("failed-precondition", "Saldo insuficiente.");
     }
 
+    const memberUidField = memberUid ? { memberUid } : {};
     tx.set(ledgerCol.doc(`redeem__${redemptionRef.id}`), {
       memberId,
+      ...memberUidField,
       type: "redeem",
       points: -cost,
       sourceType: "reward",
@@ -75,6 +134,7 @@ export async function redeemReward(
     tx.set(redemptionRef, {
       rewardId,
       memberId,
+      ...memberUidField,
       rewardTitleSnapshot: (reward.title as string | undefined) ?? "",
       cost,
       status: "requested",

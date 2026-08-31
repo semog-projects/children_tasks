@@ -23,7 +23,8 @@ class TaskInstanceRepository {
         .map((snap) => snap.docs.map(TaskInstance.fromDoc).toList());
   }
 
-  /// Ocorrências de um dia para uma criança.
+  /// Ocorrências de um dia para uma criança (visão do responsável, por
+  /// `memberId`).
   Stream<List<TaskInstance>> watchForMemberAndDate(
     String familyId,
     String memberId,
@@ -32,6 +33,21 @@ class TaskInstanceRepository {
     return _refs
         .taskInstances(familyId)
         .where('memberId', isEqualTo: memberId)
+        .where('date', isEqualTo: Timestamp.fromDate(utcMidnight))
+        .snapshots()
+        .map((snap) => snap.docs.map(TaskInstance.fromDoc).toList());
+  }
+
+  /// Ocorrências de um dia da própria criança logada — filtra por `memberUid`
+  /// (as rules da criança, issue #34, exigem esse filtro).
+  Stream<List<TaskInstance>> watchForMemberUidAndDate(
+    String familyId,
+    String memberUid,
+    DateTime utcMidnight,
+  ) {
+    return _refs
+        .taskInstances(familyId)
+        .where('memberUid', isEqualTo: memberUid)
         .where('date', isEqualTo: Timestamp.fromDate(utcMidnight))
         .snapshots()
         .map((snap) => snap.docs.map(TaskInstance.fromDoc).toList());
@@ -60,7 +76,9 @@ class TaskInstanceRepository {
     return _doc(familyId, instance.id).update({
       'status': next.name,
       'completedAt': FieldValue.serverTimestamp(),
-      'rejectionReason': null,
+      // Só toca `rejectionReason` se havia um (mantém o diff mínimo — as
+      // rules da criança só liberam status/completedAt/rejectionReason/updatedAt).
+      if (instance.rejectionReason != null) 'rejectionReason': null,
       'updatedAt': FieldValue.serverTimestamp(),
     });
   }

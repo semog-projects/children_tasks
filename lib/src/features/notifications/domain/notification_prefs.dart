@@ -1,5 +1,6 @@
-/// Preferências de notificação de um responsável. Guardadas em
-/// `users/{uid}.notif`.
+/// Preferências de notificação, guardadas em `users/{uid}.notif`. Os campos do
+/// responsável e os da criança coexistem no mesmo doc; cada tela mostra os
+/// seus (issue #35).
 class NotificationPrefs {
   const NotificationPrefs({
     this.pendingApproval = true,
@@ -7,8 +8,12 @@ class NotificationPrefs {
     this.redemption = true,
     this.dailyReminder = true,
     this.reminderHour = 18,
+    this.taskApproved = true,
+    this.taskRejected = true,
+    this.rewardDelivered = true,
   });
 
+  // --- responsável ---
   final bool pendingApproval;
   final bool approvalResult;
   final bool redemption;
@@ -16,6 +21,11 @@ class NotificationPrefs {
 
   /// Hora local (0–23) do lembrete diário.
   final int reminderHour;
+
+  // --- criança ---
+  final bool taskApproved;
+  final bool taskRejected;
+  final bool rewardDelivered;
 
   factory NotificationPrefs.fromMap(Map<String, dynamic>? map) {
     final m = map ?? const {};
@@ -25,6 +35,9 @@ class NotificationPrefs {
       redemption: m['redemption'] as bool? ?? true,
       dailyReminder: m['dailyReminder'] as bool? ?? true,
       reminderHour: (m['reminderHour'] as num?)?.toInt() ?? 18,
+      taskApproved: m['taskApproved'] as bool? ?? true,
+      taskRejected: m['taskRejected'] as bool? ?? true,
+      rewardDelivered: m['rewardDelivered'] as bool? ?? true,
     );
   }
 
@@ -34,6 +47,9 @@ class NotificationPrefs {
         'redemption': redemption,
         'dailyReminder': dailyReminder,
         'reminderHour': reminderHour,
+        'taskApproved': taskApproved,
+        'taskRejected': taskRejected,
+        'rewardDelivered': rewardDelivered,
       };
 
   NotificationPrefs copyWith({
@@ -42,6 +58,9 @@ class NotificationPrefs {
     bool? redemption,
     bool? dailyReminder,
     int? reminderHour,
+    bool? taskApproved,
+    bool? taskRejected,
+    bool? rewardDelivered,
   }) =>
       NotificationPrefs(
         pendingApproval: pendingApproval ?? this.pendingApproval,
@@ -49,5 +68,8 @@ class NotificationPrefs {
         redemption: redemption ?? this.redemption,
         dailyReminder: dailyReminder ?? this.dailyReminder,
         reminderHour: reminderHour ?? this.reminderHour,
+        taskApproved: taskApproved ?? this.taskApproved,
+        taskRejected: taskRejected ?? this.taskRejected,
+        rewardDelivered: rewardDelivered ?? this.rewardDelivered,
       );
 }

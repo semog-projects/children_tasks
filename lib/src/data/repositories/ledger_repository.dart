@@ -30,16 +30,25 @@ class LedgerRepository {
     return query.snapshots().map((snap) => snap.docs.map(LedgerEntry.fromDoc).toList());
   }
 
-  /// Saldo atual de uma criança (soma das entradas).
+  /// Saldo atual de uma criança (soma das entradas), pela visão do responsável.
   Stream<int> watchBalance(String familyId, String memberId) {
-    return _refs
-        .ledger(familyId)
-        .where('memberId', isEqualTo: memberId)
-        .snapshots()
-        .map((snap) => snap.docs.fold<int>(
-              0,
-              (total, doc) => total + ((doc.data()['points'] as num?)?.toInt() ?? 0),
-            ));
+    return _sumPoints(
+      _refs.ledger(familyId).where('memberId', isEqualTo: memberId),
+    );
+  }
+
+  /// Saldo da própria criança logada — filtra por `memberUid` (rules #34).
+  Stream<int> watchBalanceByUid(String familyId, String memberUid) {
+    return _sumPoints(
+      _refs.ledger(familyId).where('memberUid', isEqualTo: memberUid),
+    );
+  }
+
+  Stream<int> _sumPoints(Query<Map<String, dynamic>> query) {
+    return query.snapshots().map((snap) => snap.docs.fold<int>(
+          0,
+          (total, doc) => total + ((doc.data()['points'] as num?)?.toInt() ?? 0),
+        ));
   }
 
   /// Lançamento avulso feito por um responsável (ajuste manual).

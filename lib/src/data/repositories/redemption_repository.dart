@@ -19,13 +19,22 @@ class RedemptionRepository {
   }
 
   Stream<List<Redemption>> watchForMember(String familyId, String memberId) {
-    return _refs
-        .redemptions(familyId)
-        .where('memberId', isEqualTo: memberId)
-        .snapshots()
-        .map((snap) => (snap.docs.map(Redemption.fromDoc).toList())
-          ..sort((a, b) =>
-              (b.requestedAt ?? DateTime(0)).compareTo(a.requestedAt ?? DateTime(0))));
+    return _sorted(
+      _refs.redemptions(familyId).where('memberId', isEqualTo: memberId),
+    );
+  }
+
+  /// Resgates da própria criança logada — filtra por `memberUid` (rules #34).
+  Stream<List<Redemption>> watchForMemberUid(String familyId, String memberUid) {
+    return _sorted(
+      _refs.redemptions(familyId).where('memberUid', isEqualTo: memberUid),
+    );
+  }
+
+  Stream<List<Redemption>> _sorted(Query<Map<String, dynamic>> query) {
+    return query.snapshots().map((snap) =>
+        (snap.docs.map(Redemption.fromDoc).toList())..sort((a, b) =>
+            (b.requestedAt ?? DateTime(0)).compareTo(a.requestedAt ?? DateTime(0))));
   }
 
   Stream<List<Redemption>> watchPendingDelivery(String familyId) {

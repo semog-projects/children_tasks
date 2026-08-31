@@ -11,7 +11,10 @@ export type PrefKey =
   | "pendingApproval"
   | "approvalResult"
   | "redemption"
-  | "dailyReminder";
+  | "dailyReminder"
+  | "taskApproved"
+  | "taskRejected"
+  | "rewardDelivered";
 
 interface Target {
   uid: string;
@@ -98,7 +101,7 @@ export async function notifyGuardians(
   return sendAndClean(db, targets, notif, sender);
 }
 
-/** Notifica um responsável específico (usado pelo lembrete diário). */
+/** Notifica um usuário específico (usado pelo lembrete diário). */
 export async function notifyUser(
   db: Firestore,
   uid: string,
@@ -106,4 +109,24 @@ export async function notifyUser(
   sender: Sender = new RealSender(getMessaging()),
 ): Promise<number> {
   return sendAndClean(db, await tokensForUser(db, uid), notif, sender);
+}
+
+/**
+ * Notifica a criança dona de [memberId], se ela tem login próprio
+ * (`members/{id}.linkedUid`) e o pref [prefKey] não está desligado (#35).
+ */
+export async function notifyMember(
+  db: Firestore,
+  familyId: string,
+  memberId: string,
+  prefKey: PrefKey,
+  notif: Notif,
+  sender: Sender = new RealSender(getMessaging()),
+): Promise<number> {
+  const member = await db.doc(`families/${familyId}/members/${memberId}`).get();
+  const uid = member.data()?.linkedUid as string | undefined;
+  if (!uid) return 0;
+  const user = await db.collection("users").doc(uid).get();
+  if (user.data()?.notif?.[prefKey] === false) return 0;
+  return notifyUser(db, uid, notif, sender);
 }
