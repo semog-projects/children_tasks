@@ -43,6 +43,14 @@ service cloud.firestore {
       }
     }
 
+    // ---- familyInvites ----------------------------------------------
+    // Convites de vínculo (criança / responsável) — issue #33. Só as Cloud
+    // Functions (admin) leem/escrevem; o cliente age pelas callables
+    // `createFamilyInvite` / `acceptFamilyInvite`.
+    match /familyInvites/{code} {
+      allow read, write: if false;
+    }
+
     // ---- families ----------------------------------------------------
     match /families/{familyId} {
       allow get: if isGuardian(familyId);

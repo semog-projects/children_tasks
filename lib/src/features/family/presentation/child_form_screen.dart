@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../common/avatar_colors.dart';
 import '../../../data/models/member.dart';
 import '../application/family_providers.dart';
+import '../application/invite_providers.dart';
+import '../data/invites_repository.dart';
 
 /// Formulário de adicionar/editar uma criança.
 class ChildFormScreen extends ConsumerStatefulWidget {
@@ -145,12 +148,150 @@ class _ChildFormScreenState extends ConsumerState<ChildFormScreen> {
                     onPressed: busy ? null : _submit,
                     child: Text(busy ? 'Salvando…' : 'Salvar'),
                   ),
+                  if (widget.isEditing) ...[
+                    const SizedBox(height: 24),
+                    const Divider(),
+                    const SizedBox(height: 8),
+                    _ChildInviteCard(child: widget.child!),
+                  ],
                 ],
               ),
             ),
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Vínculo de conta da criança: mostra o estado e gera um código de convite
+/// para a criança entrar com a própria conta Google (issue #33).
+class _ChildInviteCard extends ConsumerStatefulWidget {
+  const _ChildInviteCard({required this.child});
+
+  final Member child;
+
+  @override
+  ConsumerState<_ChildInviteCard> createState() => _ChildInviteCardState();
+}
+
+class _ChildInviteCardState extends ConsumerState<_ChildInviteCard> {
+  bool _loading = false;
+  FamilyInvite? _invite;
+
+  Future<void> _generate() async {
+    setState(() => _loading = true);
+    try {
+      final invite = await ref.read(invitesRepositoryProvider).createChildInvite(
+            familyId: ref.read(currentFamilyIdProvider),
+            memberId: widget.child.id,
+          );
+      if (mounted) setState(() => _invite = invite);
+    } on InviteException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(SnackBar(content: Text(e.message)));
+      }
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    if (widget.child.linkedUid != null) {
+      return Card(
+        child: ListTile(
+          leading: Icon(Icons.verified_user_rounded,
+              color: theme.colorScheme.primary),
+          title: const Text('Conta vinculada'),
+          subtitle: const Text('A criança já entra com a própria conta Google.'),
+        ),
+      );
+    }
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Login da criança', style: theme.textTheme.titleSmall),
+            const SizedBox(height: 4),
+            Text(
+              'Gere um código para ${widget.child.displayName} entrar no app '
+              'com a própria conta Google.',
+              style: theme.textTheme.bodySmall,
+            ),
+            const SizedBox(height: 12),
+            if (_invite == null)
+              FilledButton.tonalIcon(
+                onPressed: _loading ? null : _generate,
+                icon: _loading
+                    ? const SizedBox.square(
+                        dimension: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.key_rounded),
+                label: Text(_loading ? 'Gerando…' : 'Gerar convite'),
+              )
+            else
+              _InviteCodeBox(invite: _invite!),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _InviteCodeBox extends StatelessWidget {
+  const _InviteCodeBox({required this.invite});
+
+  final FamilyInvite invite;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final days = invite.expiresAt.difference(DateTime.now()).inDays;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: SelectableText(
+                invite.code,
+                style: theme.textTheme.headlineSmall
+                    ?.copyWith(letterSpacing: 4, fontFamily: 'monospace'),
+              ),
+            ),
+            IconButton(
+              tooltip: 'Copiar',
+              icon: const Icon(Icons.copy),
+              onPressed: () {
+                Clipboard.setData(ClipboardData(text: invite.code));
+                ScaffoldMessenger.of(context)
+                  ..hideCurrentSnackBar()
+                  ..showSnackBar(
+                      const SnackBar(content: Text('Código copiado')));
+              },
+            ),
+          ],
+        ),
+        Text(
+          days > 0 ? 'Válido por $days dias.' : 'Válido por menos de 1 dia.',
+          style: theme.textTheme.bodySmall,
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'A criança abre o app, entra com o Google e digita este código.',
+          style: theme.textTheme.bodySmall,
+        ),
+      ],
     );
   }
 }

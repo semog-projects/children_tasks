@@ -3,6 +3,7 @@ import { FieldValue, Firestore } from "firebase-admin/firestore";
 interface InstanceSnapshot {
   status?: string;
   memberId?: string;
+  memberUid?: string;
   pointsSnapshot?: number;
   reviewedByUid?: string;
   pointsAwarded?: number | null;
@@ -43,6 +44,7 @@ export async function onInstanceStatusChange(
   try {
     await ledgerRef.create({
       memberId,
+      ...(after.memberUid ? { memberUid: after.memberUid } : {}),
       type: "earn",
       points,
       sourceType: "taskInstance",

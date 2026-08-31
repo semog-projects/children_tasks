@@ -3,6 +3,8 @@ import 'package:childrentasks/src/app/firebase/firebase_bootstrap.dart';
 import 'package:childrentasks/src/app/firebase/firebase_providers.dart';
 import 'package:childrentasks/src/common/sync/sync_providers.dart';
 import 'package:childrentasks/src/features/auth/application/auth_providers.dart';
+import 'package:childrentasks/src/features/family/application/invite_providers.dart';
+import 'package:childrentasks/src/features/family/data/invites_repository.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:flutter/widgets.dart';
@@ -63,6 +65,7 @@ Future<({Widget widget, FakeFirebaseFirestore db})> buildTestApp({
   FirebaseInitStatus firebase = FirebaseInitStatus.ready,
   FakeAuthRepository? auth,
   FakeFirebaseFirestore? db,
+  InvitesRepository? invites,
   bool online = true,
 }) async {
   final firestore = db ?? FakeFirebaseFirestore();
@@ -74,6 +77,8 @@ Future<({Widget widget, FakeFirebaseFirestore db})> buildTestApp({
       firestoreProvider.overrideWithValue(firestore),
       connectivityProvider.overrideWith((ref) => Stream.value(online)),
       pendingWritesProvider.overrideWith((ref) => Stream.value(false)),
+      if (invites != null)
+        invitesRepositoryProvider.overrideWithValue(invites),
     ],
     child: const ChildrenTasksApp(),
   );

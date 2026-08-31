@@ -61,6 +61,12 @@ export async function generateForFamily(
   ]);
 
   const childIds = new Set(childrenSnap.docs.map((d) => d.id));
+  const childUidById = new Map(
+    childrenSnap.docs.map((d) => [
+      d.id,
+      d.data().linkedUid as string | undefined,
+    ]),
+  );
   let created = 0;
 
   for (const taskDoc of tasksSnap.docs) {
@@ -76,10 +82,12 @@ export async function generateForFamily(
       const ref = db.doc(
         `families/${familyId}/taskInstances/${instanceId(taskDoc.id, memberId, dateStr)}`,
       );
+      const memberUid = childUidById.get(memberId);
       try {
         await ref.create({
           taskId: taskDoc.id,
           memberId,
+          ...(memberUid ? { memberUid } : {}),
           date: instanceDate,
           status: "pending",
           titleSnapshot: task.title ?? "",
