@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../common/sync/sync_providers.dart';
 import '../../../data/models/redemption.dart';
 import '../../../data/models/reward.dart';
 import '../../points/application/points_providers.dart';
@@ -43,6 +44,7 @@ class CatalogScreen extends ConsumerWidget {
     final rewards = ref.watch(activeRewardsProvider);
     final redemptions = ref.watch(childRedemptionsProvider(memberId));
     final busy = ref.watch(redemptionControllerProvider).isLoading;
+    final online = ref.watch(isOnlineProvider);
     final theme = Theme.of(context);
 
     return Scaffold(
@@ -62,6 +64,13 @@ class CatalogScreen extends ConsumerWidget {
                 subtitle: const Text('Saldo disponível'),
               ),
             ),
+            if (!online)
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                child: Text(
+                  'O resgate precisa de internet — tente de novo quando a conexão voltar.',
+                ),
+              ),
             if (list.isEmpty)
               const Padding(
                 padding: EdgeInsets.all(16),
@@ -71,7 +80,7 @@ class CatalogScreen extends ConsumerWidget {
               for (final reward in list)
                 _RewardCard(
                   reward: reward,
-                  affordable: balance >= reward.cost && reward.inStock,
+                  affordable: online && balance >= reward.cost && reward.inStock,
                   busy: busy,
                   onRedeem: () => _confirmRedeem(context, ref, reward),
                 ),

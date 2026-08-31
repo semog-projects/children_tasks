@@ -198,3 +198,19 @@ Ver `firestore.indexes.json`:
 - Validação de formato em `create`/`update` (enums, ranges, campos obrigatórios).
 - `users/{uid}`: cada um só o próprio doc.
 - Qualquer outro caminho: negado.
+
+## Offline e conflitos (issue #15)
+
+- Cache offline do Firestore ligado (`persistenceEnabled`) — no mobile já vem
+  por padrão; no web é explícito.
+- **Última escrita vence** para campos simples (comportamento padrão do
+  `update()`). Marcar tarefa / aprovar / rejeitar offline funciona: o `status`
+  muda localmente e sincroniza depois.
+- **Pontos nunca são somados no cliente offline.** O saldo é a soma do
+  `ledger`, e as entradas `earn`/`redeem` só existem depois que uma Cloud
+  Function roda no servidor (aprovação → `onTaskInstanceWritten`; resgate →
+  `redeemReward`, que ainda por cima é uma callable e exige rede). Aprovar
+  offline não credita nada até o write sincronizar.
+- `SyncBanner` (topo da home e do modo criança) avisa "Sem conexão" ou
+  "Sincronizando alterações…" (via `metadata.hasPendingWrites`).
+- No catálogo, "Resgatar" fica desabilitado offline.

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../common/avatar_colors.dart';
+import '../../../common/sync/sync_banner.dart';
 import '../../dashboard/presentation/dashboard_screen.dart';
 import '../../family/application/family_providers.dart';
 import '../../family/presentation/family_screen.dart';
@@ -76,48 +77,55 @@ class HomeScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 480),
-          child: children.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => const Center(child: Text('Erro ao carregar a família')),
-            data: (list) => ListView(
-              padding: const EdgeInsets.all(24),
-              children: [
-                if (list.isEmpty)
-                  Card(
-                    child: ListTile(
-                      leading: const Icon(Icons.child_care),
-                      title: const Text('Adicione as crianças da família'),
-                      subtitle: const Text('Toque para abrir a gestão da família.'),
-                      onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute<void>(builder: (_) => const FamilyScreen()),
-                      ),
-                    ),
-                  )
-                else ...[
-                  FilledButton.tonalIcon(
-                    onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute<void>(builder: (_) => const TodayScreen()),
-                    ),
-                    icon: const Icon(Icons.today),
-                    label: const Text('Tarefas de hoje'),
+      body: Column(
+        children: [
+          const SyncBanner(),
+          Expanded(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 480),
+                child: children.when(
+                  loading: () => const Center(child: CircularProgressIndicator()),
+                  error: (e, _) => const Center(child: Text('Erro ao carregar a família')),
+                  data: (list) => ListView(
+                    padding: const EdgeInsets.all(24),
+                    children: [
+                      if (list.isEmpty)
+                        Card(
+                          child: ListTile(
+                            leading: const Icon(Icons.child_care),
+                            title: const Text('Adicione as crianças da família'),
+                            subtitle: const Text('Toque para abrir a gestão da família.'),
+                            onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute<void>(builder: (_) => const FamilyScreen()),
+                            ),
+                          ),
+                        )
+                      else ...[
+                        FilledButton.tonalIcon(
+                          onPressed: () => Navigator.of(context).push(
+                            MaterialPageRoute<void>(builder: (_) => const TodayScreen()),
+                          ),
+                          icon: const Icon(Icons.today),
+                          label: const Text('Tarefas de hoje'),
+                        ),
+                        const SizedBox(height: 16),
+                        Text('Crianças', style: Theme.of(context).textTheme.titleMedium),
+                        const SizedBox(height: 8),
+                        for (final child in list)
+                          _ChildCard(
+                            childId: child.id,
+                            name: child.displayName,
+                            colorHex: child.avatarColor,
+                          ),
+                      ],
+                    ],
                   ),
-                  const SizedBox(height: 16),
-                  Text('Crianças', style: Theme.of(context).textTheme.titleMedium),
-                  const SizedBox(height: 8),
-                  for (final child in list)
-                    _ChildCard(
-                      childId: child.id,
-                      name: child.displayName,
-                      colorHex: child.avatarColor,
-                    ),
-                ],
-              ],
+                ),
+              ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }

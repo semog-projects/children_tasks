@@ -1,6 +1,7 @@
 import 'package:childrentasks/src/app/children_tasks_app.dart';
 import 'package:childrentasks/src/app/firebase/firebase_bootstrap.dart';
 import 'package:childrentasks/src/app/firebase/firebase_providers.dart';
+import 'package:childrentasks/src/common/sync/sync_providers.dart';
 import 'package:childrentasks/src/data/firestore_refs.dart';
 import 'package:childrentasks/src/features/auth/application/auth_providers.dart';
 import 'package:childrentasks/src/features/profiles/application/profile_providers.dart';
@@ -59,6 +60,7 @@ Future<({Widget widget, FakeFirebaseFirestore db})> buildTestApp({
   FakeAuthRepository? auth,
   FakeFirebaseFirestore? db,
   Map<String, Object> prefs = const {'activeProfile': 'guardian'},
+  bool online = true,
 }) async {
   final firestore = db ?? FakeFirebaseFirestore();
   SharedPreferences.setMockInitialValues(prefs);
@@ -70,6 +72,8 @@ Future<({Widget widget, FakeFirebaseFirestore db})> buildTestApp({
       authRepositoryProvider.overrideWithValue(auth ?? FakeAuthRepository()),
       firestoreProvider.overrideWithValue(firestore),
       sharedPreferencesProvider.overrideWithValue(sharedPrefs),
+      connectivityProvider.overrideWith((ref) => Stream.value(online)),
+      pendingWritesProvider.overrideWith((ref) => Stream.value(false)),
     ],
     child: const ChildrenTasksApp(),
   );
