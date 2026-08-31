@@ -21,7 +21,8 @@ O objetivo é ajudar famílias a organizar a rotina das crianças de forma lúdi
 
 ## Funcionalidades planejadas
 
-- [ ] Autenticação com **Google Sign-In**
+- [x] Autenticação com **Google Sign-In** (responsável) — web via popup;
+      Android/iOS via `google_sign_in` (precisa de `GOOGLE_SERVER_CLIENT_ID`)
 - [ ] Família gerenciada no app, membros associados por conta Google
       (sem sincronizar com o grupo familiar do Google — ver decisão abaixo)
 - [ ] App único com **perfis**: modo responsável (protegido por PIN/senha) e
@@ -124,8 +125,19 @@ Ambiente selecionado em tempo de compilação por `--dart-define=FLAVOR=dev|prod
 `--dart-define=USE_FIREBASE_EMULATOR=true|false`.
 
 ```bash
-flutter run                              # dev + emuladores
-flutter run --dart-define=FLAVOR=prod    # prod
+flutter run -d web-server --web-port 5000               # dev + emuladores
+flutter run --dart-define=FLAVOR=prod                   # prod
+```
+
+> A porta 8080 é do emulador do Firestore — rode o app web em outra porta.
+
+### Login Google no Android/iOS
+
+O login web usa popup e não precisa de config extra. Para o **nativo**
+(`google_sign_in`), passe o client ID OAuth "Web" do projeto Firebase:
+
+```bash
+flutter run --dart-define=GOOGLE_SERVER_CLIENT_ID=<web-client-id>.apps.googleusercontent.com
 ```
 
 ## Como começar (desenvolvimento)

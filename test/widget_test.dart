@@ -1,26 +1,43 @@
 import 'package:childrentasks/src/app/children_tasks_app.dart';
 import 'package:childrentasks/src/app/firebase/firebase_bootstrap.dart';
 import 'package:childrentasks/src/app/firebase/firebase_providers.dart';
+import 'package:childrentasks/src/features/auth/application/auth_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-Widget _app({FirebaseInitStatus firebase = FirebaseInitStatus.notConfigured}) {
+import 'support/fake_auth_repository.dart';
+
+Widget _app({
+  FirebaseInitStatus firebase = FirebaseInitStatus.ready,
+  FakeAuthRepository? auth,
+}) {
   return ProviderScope(
     overrides: [
       firebaseInitStatusProvider.overrideWithValue(firebase),
+      authRepositoryProvider.overrideWithValue(auth ?? FakeAuthRepository()),
     ],
     child: const ChildrenTasksApp(),
   );
 }
 
 void main() {
-  testWidgets('app inicia na tela de bootstrap', (tester) async {
+  testWidgets('deslogado: mostra a tela de login', (tester) async {
     await tester.pumpWidget(_app());
     await tester.pumpAndSettle();
 
+    expect(find.text('Entrar com Google'), findsOneWidget);
+    expect(find.text('Projeto em bootstrap'), findsNothing);
+  });
+
+  testWidgets('logado: mostra a home', (tester) async {
+    await tester.pumpWidget(
+      _app(auth: FakeAuthRepository(initialUser: FakeAuthRepository.user())),
+    );
+    await tester.pumpAndSettle();
+
     expect(find.text('Projeto em bootstrap'), findsOneWidget);
-    expect(find.textContaining('Google Sign-In'), findsOneWidget);
+    expect(find.text('ana@example.com'), findsOneWidget);
   });
 
   testWidgets('usa locale pt-BR', (tester) async {
@@ -31,13 +48,11 @@ void main() {
     expect(app.locale, const Locale('pt', 'BR'));
   });
 
-  testWidgets('mostra status do Firebase', (tester) async {
-    await tester.pumpWidget(_app());
+  testWidgets('Firebase indisponível: bloqueia antes do login', (tester) async {
+    await tester.pumpWidget(_app(firebase: FirebaseInitStatus.notConfigured));
     await tester.pumpAndSettle();
-    expect(find.text('Firebase indisponível'), findsOneWidget);
 
-    await tester.pumpWidget(_app(firebase: FirebaseInitStatus.ready));
-    await tester.pumpAndSettle();
-    expect(find.text('Firebase conectado'), findsOneWidget);
+    expect(find.text('Backend indisponível'), findsOneWidget);
+    expect(find.text('Entrar com Google'), findsNothing);
   });
 }
