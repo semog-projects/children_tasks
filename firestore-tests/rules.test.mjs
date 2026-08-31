@@ -50,11 +50,12 @@ const validTask = {
   recurrence: { type: 'daily', daysOfWeek: [], startDate: new Date(), endDate: null },
 };
 
+// O cliente só pode criar ajuste manual; earn/redeem vêm das Functions.
 const validLedger = {
   memberId: 'm1',
-  type: 'earn',
+  type: 'adjustment',
   points: 10,
-  sourceType: 'taskInstance',
+  sourceType: 'manual',
   createdByUid: GUARDIAN,
 };
 
@@ -160,6 +161,34 @@ test('ledger: points = 0 e createdByUid diferente do auth são rejeitados', asyn
   const ledger = collection(guardianDb(), `families/${FAMILY}/ledger`);
   await assertFails(addDoc(ledger, { ...validLedger, points: 0 }));
   await assertFails(addDoc(ledger, { ...validLedger, createdByUid: 'alguem' }));
+});
+
+test('ledger: cliente não pode criar earn nem redeem (só a Function)', async () => {
+  const ledger = collection(guardianDb(), `families/${FAMILY}/ledger`);
+  await assertFails(addDoc(ledger, { ...validLedger, type: 'earn', sourceType: 'taskInstance' }));
+  await assertFails(addDoc(ledger, { ...validLedger, type: 'redeem', points: -10, sourceType: 'reward' }));
+});
+
+test('redemptions: cliente não cria, mas marca como entregue', async () => {
+  const col = `families/${FAMILY}/redemptions`;
+  // semeia como a Function faria
+  await testEnv.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), `${col}/red1`), {
+      rewardId: 'r1',
+      memberId: 'm1',
+      cost: 50,
+      status: 'requested',
+    });
+  });
+
+  const ref = doc(guardianDb(), `${col}/red1`);
+  await assertSucceeds(getDoc(ref));
+  await assertFails(
+    setDoc(doc(guardianDb(), `${col}/red2`), { rewardId: 'r', memberId: 'm', cost: 1, status: 'requested' }),
+  );
+  await assertSucceeds(updateDoc(ref, { status: 'delivered' }));
+  // não pode alterar o custo
+  await assertFails(updateDoc(ref, { cost: 1 }));
 });
 
 test('taskInstances: responsável muda status, mas não pointsAwarded nem pula para approved', async () => {

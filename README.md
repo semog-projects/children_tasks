@@ -35,7 +35,8 @@ O objetivo é ajudar famílias a organizar a rotina das crianças de forma lúdi
       hora + callable disparada pelo app), idempotente, respeitando o fuso
 - [x] Marcação de conclusão + **aprovação do responsável**; pontos creditados
       no ledger por Cloud Function (idempotente); rejeição volta pra pendente
-- [ ] **Sistema de pontos/recompensas** com catálogo de recompensas resgatáveis
+- [x] **Pontos e recompensas**: CRUD de recompensas, catálogo por criança,
+      resgate transacional (Cloud Function, sem saldo negativo), entrega
 - [ ] Painel de progresso e histórico
 - [ ] Sincronização em tempo real entre dispositivos da família
 - [ ] Notificações (lembretes de tarefas, tarefa concluída, recompensa resgatada)

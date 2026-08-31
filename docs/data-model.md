@@ -136,6 +136,22 @@ aprovação.
 | `stock` | int? | `null` = ilimitado; senão ≥ 0 |
 | `createdAt` / `updatedAt` | timestamp | server |
 
+### `families/{familyId}/redemptions/{redemptionId}`
+
+Um resgate de recompensa. Criado **só pela Function `redeemReward`** (débito
+transacional). O responsável marca como `delivered`.
+
+| campo | tipo | notas |
+|---|---|---|
+| `rewardId` | string | ref a `rewards` |
+| `memberId` | string | a criança |
+| `rewardTitleSnapshot` | string | título no momento do resgate |
+| `cost` | int | pontos debitados |
+| `status` | string | `requested` \| `delivered` \| `canceled` |
+| `requestedByUid` | string | responsável |
+| `requestedAt` / `deliveredAt` | timestamp | server |
+| `deliveredByUid` | string? | quem entregou |
+
 ### `families/{familyId}/ledger/{entryId}`
 
 Lançamentos de pontos. **Append-only** (sem update/delete pelo cliente). O
@@ -147,14 +163,18 @@ saldo de uma criança é a soma de `points` das entradas dela.
 | `type` | string | `earn` \| `redeem` \| `adjustment` |
 | `points` | int | com sinal: `earn` > 0, `redeem` < 0, `adjustment` qualquer ≠ 0 |
 | `sourceType` | string | `taskInstance` \| `reward` \| `manual` |
-| `sourceId` | string? | id da instância/recompensa |
+| `sourceId` | string? | id da instância/resgate |
 | `note` | string? | ≤ 200 chars |
-| `createdByUid` | string | responsável |
+| `createdByUid` | string | responsável (ou `system` p/ entradas de Function) |
 | `createdAt` | timestamp | server |
 
-A escrita transacional (aprovação credita, resgate debita, sem saldo
-negativo) é responsabilidade das issues #9 e #12 — as regras aqui só garantem
-formato e append-only.
+**Quem cria o quê:**
+- `earn` (id `earn__{instanceId}`) — Function `onTaskInstanceWritten` ao aprovar (#11)
+- `redeem` (id `redeem__{redemptionId}`) — Function `redeemReward` (#12)
+- `adjustment` — o **cliente** (ajuste manual do responsável)
+
+As rules deixam o cliente criar **só `adjustment`/`manual`**; `earn` e
+`redeem` vêm das Functions (admin SDK, ignora rules). Append-only para todos.
 
 ## Índices compostos
 
