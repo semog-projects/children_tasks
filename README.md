@@ -33,8 +33,11 @@ O objetivo é ajudar famílias a organizar a rotina das crianças de forma lúdi
 - [x] Convite e vínculo da criança à família (conta Google): callables
       `createFamilyInvite` / `acceptFamilyInvite`, `family.childUids`,
       `memberUid` denormalizado — issue #33
-- [ ] Regras de acesso da criança (#34) e ações da criança — marcar tarefa,
-      pedir resgate, notificações (#35)
+- [x] Security Rules com o papel "criança": lê a própria família/tarefas/
+      recompensas e só os próprios `taskInstances`/`ledger` (`memberUid`);
+      auto-aprovação barrada no servidor — issue #34
+- [ ] Ações da criança no próprio login — marcar tarefa, pedir resgate,
+      notificações (#35)
 - [x] Criação/edição/arquivamento de tarefas (pontos, categoria, atribuição,
       repetição, aprovação) com filtros por criança/categoria
 - [x] **Tarefas recorrentes** geradas por Cloud Function (agendada de hora em

@@ -20,18 +20,25 @@ import {
   deleteDoc,
   doc,
   getDoc,
+  getDocs,
+  query,
   setDoc,
   updateDoc,
+  where,
 } from 'firebase/firestore';
 
 let testEnv;
 
 const FAMILY = 'fam1';
 const GUARDIAN = 'guardian-1';
+const CHILD = 'child-1';
 const OUTSIDER = 'outsider-9';
 
 function guardianDb() {
   return testEnv.authenticatedContext(GUARDIAN).firestore();
+}
+function childDb() {
+  return testEnv.authenticatedContext(CHILD).firestore();
 }
 function outsiderDb() {
   return testEnv.authenticatedContext(OUTSIDER).firestore();
@@ -77,14 +84,60 @@ after(async () => {
 
 beforeEach(async () => {
   await testEnv.clearFirestore();
-  // Semeia a família com o GUARDIAN como responsável, ignorando as regras.
+  // Semeia a família + uma criança vinculada (CHILD) e docs com memberUid,
+  // ignorando as regras.
   await testEnv.withSecurityRulesDisabled(async (ctx) => {
     const db = ctx.firestore();
     await setDoc(doc(db, 'families', FAMILY), {
       name: 'Silva',
       guardianUids: [GUARDIAN],
       guardians: [{ uid: GUARDIAN, displayName: 'Ana' }],
+      childUids: [CHILD],
       timezone: 'America/Sao_Paulo',
+    });
+    await setDoc(doc(db, `families/${FAMILY}/members/m-bia`), {
+      type: 'child',
+      displayName: 'Bia',
+      linkedUid: CHILD,
+    });
+    await setDoc(doc(db, `families/${FAMILY}/members/m-leo`), {
+      type: 'child',
+      displayName: 'Léo',
+    });
+    await setDoc(doc(db, `families/${FAMILY}/tasks/t1`), validTask);
+    await setDoc(doc(db, `families/${FAMILY}/rewards/r1`), {
+      title: 'Cinema',
+      cost: 100,
+      active: true,
+      stock: null,
+    });
+    await setDoc(doc(db, `families/${FAMILY}/taskInstances/ti-bia`), {
+      taskId: 't1',
+      memberId: 'm-bia',
+      memberUid: CHILD,
+      status: 'pending',
+      requiresApproval: true,
+    });
+    await setDoc(doc(db, `families/${FAMILY}/taskInstances/ti-leo`), {
+      taskId: 't1',
+      memberId: 'm-leo',
+      memberUid: 'uid-leo',
+      status: 'pending',
+      requiresApproval: true,
+    });
+    await setDoc(doc(db, `families/${FAMILY}/ledger/earn__a`), {
+      memberId: 'm-bia',
+      memberUid: CHILD,
+      type: 'earn',
+      points: 10,
+      sourceType: 'taskInstance',
+    });
+    await setDoc(doc(db, `families/${FAMILY}/ledger/earn__b`), {
+      memberId: 'm-leo',
+      memberUid: 'uid-leo',
+      type: 'earn',
+      points: 5,
+      sourceType: 'taskInstance',
     });
   });
 });
@@ -253,4 +306,120 @@ test('fcmTokens: cada um só os próprios', async () => {
     setDoc(doc(guardianDb(), `users/${OUTSIDER}/fcmTokens/tok2`), { platform: 'web' }),
   );
   await assertFails(getDoc(doc(outsiderDb(), `users/${GUARDIAN}/fcmTokens/tok1`)));
+});
+
+// ---- papel "criança" (issues #33/#34) ----------------------------------
+
+test('criança lê a própria família e a lista por childUids', async () => {
+  await assertSucceeds(getDoc(doc(childDb(), 'families', FAMILY)));
+  await assertSucceeds(
+    getDocs(
+      query(
+        collection(childDb(), 'families'),
+        where('childUids', 'array-contains', CHILD),
+      ),
+    ),
+  );
+  // estranho continua barrado
+  await assertFails(getDoc(doc(outsiderDb(), 'families', FAMILY)));
+});
+
+test('criança lê members/tasks/rewards, mas não escreve', async () => {
+  await assertSucceeds(getDoc(doc(childDb(), `families/${FAMILY}/members/m-leo`)));
+  await assertSucceeds(getDoc(doc(childDb(), `families/${FAMILY}/tasks/t1`)));
+  await assertSucceeds(getDoc(doc(childDb(), `families/${FAMILY}/rewards/r1`)));
+
+  await assertFails(addDoc(collection(childDb(), `families/${FAMILY}/tasks`), validTask));
+  await assertFails(
+    updateDoc(doc(childDb(), `families/${FAMILY}/members/m-bia`), { displayName: 'X' }),
+  );
+  await assertFails(
+    updateDoc(doc(childDb(), `families/${FAMILY}/rewards/r1`), { cost: 1 }),
+  );
+});
+
+test('criança lê a própria taskInstance, não a do irmão', async () => {
+  await assertSucceeds(
+    getDoc(doc(childDb(), `families/${FAMILY}/taskInstances/ti-bia`)),
+  );
+  await assertFails(
+    getDoc(doc(childDb(), `families/${FAMILY}/taskInstances/ti-leo`)),
+  );
+});
+
+test('criança: query de taskInstances precisa filtrar por memberUid', async () => {
+  const col = collection(childDb(), `families/${FAMILY}/taskInstances`);
+  await assertSucceeds(getDocs(query(col, where('memberUid', '==', CHILD))));
+  await assertFails(getDocs(query(col, where('memberId', '==', 'm-bia'))));
+  await assertFails(getDocs(col));
+});
+
+test('criança marca a própria tarefa: pending -> awaitingApproval', async () => {
+  await assertSucceeds(
+    updateDoc(doc(childDb(), `families/${FAMILY}/taskInstances/ti-bia`), {
+      status: 'awaitingApproval',
+      completedAt: new Date(),
+    }),
+  );
+});
+
+test('criança não pula para approved quando a tarefa exige aprovação', async () => {
+  await assertFails(
+    updateDoc(doc(childDb(), `families/${FAMILY}/taskInstances/ti-bia`), {
+      status: 'approved',
+    }),
+  );
+});
+
+test('criança pode -> approved quando a tarefa não exige aprovação', async () => {
+  await testEnv.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), `families/${FAMILY}/taskInstances/ti-free`), {
+      taskId: 't1',
+      memberId: 'm-bia',
+      memberUid: CHILD,
+      status: 'pending',
+      requiresApproval: false,
+    });
+  });
+  await assertSucceeds(
+    updateDoc(doc(childDb(), `families/${FAMILY}/taskInstances/ti-free`), {
+      status: 'approved',
+    }),
+  );
+});
+
+test('criança não grava pointsAwarded nem reviewedByUid; não marca a do irmão', async () => {
+  const ref = doc(childDb(), `families/${FAMILY}/taskInstances/ti-bia`);
+  await assertFails(updateDoc(ref, { status: 'awaitingApproval', pointsAwarded: 10 }));
+  await assertFails(updateDoc(ref, { status: 'awaitingApproval', reviewedByUid: CHILD }));
+  await assertFails(updateDoc(ref, { status: 'awaitingApproval', memberUid: 'outro' }));
+  await assertFails(
+    updateDoc(doc(childDb(), `families/${FAMILY}/taskInstances/ti-leo`), {
+      status: 'awaitingApproval',
+    }),
+  );
+});
+
+test('criança lê o próprio ledger, não o do irmão; não cria entrada', async () => {
+  await assertSucceeds(
+    getDocs(
+      query(
+        collection(childDb(), `families/${FAMILY}/ledger`),
+        where('memberUid', '==', CHILD),
+      ),
+    ),
+  );
+  await assertFails(getDoc(doc(childDb(), `families/${FAMILY}/ledger/earn__b`)));
+  await assertFails(
+    addDoc(collection(childDb(), `families/${FAMILY}/ledger`), {
+      ...validLedger,
+      memberUid: CHILD,
+    }),
+  );
+});
+
+test('criança não edita a família', async () => {
+  await assertFails(
+    updateDoc(doc(childDb(), 'families', FAMILY), { name: 'Nova' }),
+  );
 });
