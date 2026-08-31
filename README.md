@@ -100,15 +100,18 @@ children_tasks/
 ├── lib/
 │   ├── main.dart                 # bootstrap: ProviderScope + ChildrenTasksApp
 │   └── src/
-│       ├── app/                  # MaterialApp, tema, locale
+│       ├── app/                  # MaterialApp, tema, locale, init do Firebase
 │       ├── common/               # widgets/utilitários compartilhados
+│       ├── data/                 # modelos + repositórios do Firestore (docs/data-model.md)
 │       └── features/<feature>/   # uma pasta por feature, dividida em:
 │           ├── application/       #   providers Riverpod, casos de uso
-│           ├── data/              #   repositórios, fontes de dados
-│           ├── domain/            #   modelos
+│           ├── data/              #   repositórios/fontes específicos da feature
+│           ├── domain/            #   modelos específicos da feature
 │           └── presentation/      #   telas e widgets
-├── test/           # espelha a estrutura de lib/
-├── functions/      # Cloud Functions (TypeScript)
+├── test/               # espelha a estrutura de lib/
+├── functions/          # Cloud Functions (TypeScript)
+├── firestore-tests/    # testes das Security Rules (@firebase/rules-unit-testing)
+├── docs/data-model.md  # esquema do Firestore
 ├── firebase.json firestore.rules firestore.indexes.json .firebaserc
 ├── android/ ios/ web/ windows/ macos/ linux/   # gerado pelo flutter create
 └── README.md
@@ -156,6 +159,14 @@ flutter test
 # Rodar (escolha o dispositivo com -d, ex.: chrome)
 flutter run
 ```
+
+### Testes das Security Rules
+
+```bash
+firebase emulators:exec --only firestore \
+  "npm --prefix firestore-tests test"
+```
+(ou, com o emulador já rodando: `FIRESTORE_EMULATOR_HOST=localhost:8080 npm --prefix firestore-tests test`)
 
 O app roda sem Firebase (estado de bootstrap). Para ligar o backend, faça a
 configuração abaixo.

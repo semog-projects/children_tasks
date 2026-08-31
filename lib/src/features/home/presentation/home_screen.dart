@@ -65,7 +65,7 @@ class HomeScreen extends ConsumerWidget {
                           ? NetworkImage(user.photoURL!)
                           : null,
                       onForegroundImageError:
-                          user.photoURL != null ? (_, __) {} : null,
+                          user.photoURL != null ? (_, _) {} : null,
                       child: const Icon(Icons.person),
                     ),
                     title: Text(user.displayName ?? 'Responsável'),
