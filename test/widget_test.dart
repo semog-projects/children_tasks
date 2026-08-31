@@ -21,13 +21,14 @@ void main() {
     expect(find.text('Entrar com Google'), findsNothing);
   });
 
-  testWidgets('logado sem família: abre o onboarding', (tester) async {
+  testWidgets('logado sem família: abre a tela de boas-vindas', (tester) async {
     final app = await buildTestApp(
       auth: FakeAuthRepository(initialUser: FakeAuthRepository.user()),
     );
     await pumpSettled(tester, app.widget);
 
-    expect(find.text('Criar família'), findsOneWidget);
+    expect(find.text('Você ainda não faz parte de uma família'), findsOneWidget);
+    expect(find.text('Criar uma família'), findsOneWidget);
   });
 
   testWidgets('logado com família: abre a home com as crianças', (tester) async {

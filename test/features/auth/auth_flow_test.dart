@@ -6,14 +6,14 @@ import '../../support/fake_auth_repository.dart';
 import '../../support/test_harness.dart';
 
 void main() {
-  testWidgets('login pelo botão leva ao onboarding da família', (tester) async {
+  testWidgets('login pelo botão leva à tela de boas-vindas', (tester) async {
     final app = await buildTestApp(auth: FakeAuthRepository());
     await pumpSettled(tester, app.widget);
 
     await tester.tap(find.text('Entrar com Google'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Criar família'), findsOneWidget);
+    expect(find.text('Criar uma família'), findsOneWidget);
   });
 
   testWidgets('logout volta para a tela de login', (tester) async {
@@ -23,9 +23,6 @@ void main() {
     await seedFamily(app.db, uid: 'uid-ana');
     await pumpSettled(tester, app.widget);
 
-    // guardião -> seletor de perfil -> sair da conta
-    await tester.tap(find.byTooltip('Trocar de perfil'));
-    await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Sair da conta'));
     await tester.pumpAndSettle();
 
@@ -45,7 +42,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
 
     expect(find.text('Falha no login com o Google.'), findsOneWidget);
-    expect(find.text('Criar família'), findsNothing);
+    expect(find.text('Criar uma família'), findsNothing);
   });
 
   testWidgets('cancelamento não é tratado como erro', (tester) async {

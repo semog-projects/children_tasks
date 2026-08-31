@@ -90,10 +90,15 @@ void main() {
     expect(find.text('+20'), findsOneWidget);
   });
 
-  testWidgets('modo criança mostra a próxima recompensa', (tester) async {
+  testWidgets('criança logada vê a próxima recompensa', (tester) async {
     final app = await buildTestApp(
-      auth: FakeAuthRepository(initialUser: FakeAuthRepository.user()),
-      prefs: const {'activeProfile': 'none'},
+      auth: FakeAuthRepository(
+        initialUser: FakeAuthRepository.user(
+          name: 'Bia',
+          email: 'bia@example.com',
+          uid: 'uid-bia',
+        ),
+      ),
     );
     final familyId = await seedFamily(app.db, uid: 'uid-ana', childNames: ['Bia']);
     final child = (await app.db
@@ -103,6 +108,7 @@ void main() {
             .get())
         .docs
         .single;
+    await seedChildLogin(app.db, familyId, memberId: child.id, uid: 'uid-bia');
     await app.db.collection('families').doc(familyId).collection('rewards').add({
       'title': 'Cinema',
       'cost': 100,
@@ -113,9 +119,8 @@ void main() {
         memberId: child.id, points: 30, type: 'earn', at: DateTime.now());
 
     await pumpSettled(tester, app.widget);
-    await tester.tap(find.text('Bia'));
-    await tester.pumpAndSettle();
 
+    expect(find.text('Olá, Bia!'), findsOneWidget);
     expect(find.text('Cinema'), findsOneWidget);
     expect(find.text('Faltam 70 pontos'), findsOneWidget);
   });

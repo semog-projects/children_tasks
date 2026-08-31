@@ -3,11 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../common/avatar_colors.dart';
 import '../../../common/sync/sync_banner.dart';
+import '../../auth/application/auth_providers.dart';
 import '../../dashboard/presentation/dashboard_screen.dart';
 import '../../family/application/family_providers.dart';
 import '../../family/presentation/family_screen.dart';
 import '../../points/application/points_providers.dart';
-import '../../profiles/application/profile_providers.dart';
 import '../../rewards/presentation/catalog_screen.dart';
 import '../../rewards/presentation/rewards_screen.dart';
 import '../../tasks/application/approval_providers.dart';
@@ -70,10 +70,11 @@ class HomeScreen extends ConsumerWidget {
             ),
           ),
           IconButton(
-            tooltip: 'Trocar de perfil',
-            icon: const Icon(Icons.switch_account),
-            onPressed: () =>
-                ref.read(activeProfileProvider.notifier).backToSelector(),
+            tooltip: 'Sair da conta',
+            icon: const Icon(Icons.logout),
+            onPressed: ref.watch(authControllerProvider).isLoading
+                ? null
+                : () => ref.read(authControllerProvider.notifier).signOut(),
           ),
         ],
       ),
