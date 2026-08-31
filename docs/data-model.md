@@ -25,13 +25,15 @@ Tudo abaixo de `families/{familyId}`, exceto `users/`.
 
 ### `users/{uid}` (raiz)
 
-Perfil do responsável autenticado. Criado no login (issue #5).
+Perfil de quem autentica — responsável (login, issue #5) ou criança (ao
+aceitar o convite, issue #33).
 
 | campo | tipo | notas |
 |---|---|---|
 | `displayName` | string? | do Google |
-| `email` | string? | do Google |
+| `email` | string? | do Google (minúsculas) |
 | `photoUrl` | string? | do Google |
+| `role` | string? | `child` quando o doc foi criado pelo vínculo de criança (#33); ausente para responsável |
 | `createdAt` | timestamp | server, só na criação |
 | `lastLoginAt` | timestamp | server, todo login |
 | `pinHash` / `pinSalt` | string? | Reservado para um app-lock opcional. Era o cadeado do "modo criança → modo responsável" (issue #8), removido na #32 junto com o modo criança local |
@@ -41,6 +43,28 @@ Subcoleção `users/{uid}/fcmTokens/{token}` — um doc por dispositivo (id = o
 token FCM), campos `platform` e `updatedAt`. Só o dono lê/escreve; as
 Functions leem via admin. Tokens inválidos são apagados pela Function ao
 falhar o envio.
+
+### `familyInvites/{code}` (raiz)
+
+Convite para entrar numa família (issue #33). `code` = id do doc (8 chars,
+alfabeto sem ambíguos). **Só as Functions leem/escrevem** — o cliente age
+pelas callables `createFamilyInvite` / `acceptFamilyInvite`.
+
+| campo | tipo | notas |
+|---|---|---|
+| `familyId` | string | família alvo |
+| `role` | string | `child` \| `guardian` |
+| `memberId` | string? | obrigatório p/ `child`: o `member` a vincular |
+| `email` | string? | quando presente, o aceite exige `auth.token.email` igual |
+| `createdByUid` | string | responsável que gerou |
+| `createdAt` | timestamp | server |
+| `expiresAt` | timestamp | TTL 7 dias |
+| `acceptedByUid` / `acceptedAt` | string? / timestamp? | uso único (idempotente p/ o mesmo uid) |
+
+`acceptFamilyInvite`: numa transação reserva o convite (validade + uso único);
+fora dela aplica o vínculo — `role: child` → `members/{id}.linkedUid`,
+`family.childUids` (arrayUnion), `users/{uid}` (`role: child`), backfill de
+`memberUid`; `role: guardian` → `family.guardianUids` + `guardians`.
 
 ### `families/{familyId}`
 
@@ -113,6 +137,7 @@ exibe só a data, então não há ambiguidade. Ver `functions/src/shared/dates.t
 |---|---|---|
 | `taskId` | string | ref a `tasks` |
 | `memberId` | string | a criança |
+| `memberUid` | string? | `linkedUid` da criança, quando ela tem login próprio. Gravado pelas Functions (geração + backfill no vínculo, #33); usado pelas rules da criança (#34) |
 | `date` | timestamp | meia-noite UTC do dia local (ver acima) |
 | `status` | string | `pending` \| `awaitingApproval` \| `approved` \| `rejected` |
 | `titleSnapshot` | string | título da tarefa no momento da criação |
@@ -173,6 +198,7 @@ saldo de uma criança é a soma de `points` das entradas dela.
 | campo | tipo | notas |
 |---|---|---|
 | `memberId` | string | a criança |
+| `memberUid` | string? | `linkedUid` da criança (quando tem login). Gravado pelas Functions em `earn` + backfill de todas as entradas no vínculo (#33; `redeem` passa a gravar na #35); usado pelas rules da criança (#34) |
 | `type` | string | `earn` \| `redeem` \| `adjustment` |
 | `points` | int | com sinal: `earn` > 0, `redeem` < 0, `adjustment` qualquer ≠ 0 |
 | `sourceType` | string | `taskInstance` \| `reward` \| `manual` |
@@ -209,6 +235,7 @@ Ver `firestore.indexes.json`:
 - `ledger`: responsável pode `create` e `read`; `update`/`delete` proibidos.
 - Validação de formato em `create`/`update` (enums, ranges, campos obrigatórios).
 - `users/{uid}`: cada um só o próprio doc.
+- `familyInvites/{code}`: cliente não lê nem escreve (só as Functions).
 - Qualquer outro caminho: negado.
 
 ## Offline e conflitos (issue #15)

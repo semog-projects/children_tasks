@@ -7,6 +7,8 @@
  * - redeemReward: callable, resgate transacional de recompensa (#12)
  * - onRedemptionCreated: notifica o responsável do resgate (#14)
  * - sendDailyReminders: agendada, lembrete diário de tarefas pendentes (#14)
+ * - createFamilyInvite/acceptFamilyInvite: callable, convite e vínculo de
+ *   criança / responsável à família (#33)
  */
 
 import { initializeApp } from "firebase-admin/app";
@@ -16,6 +18,11 @@ import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { logger } from "firebase-functions/v2";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 
+import {
+  acceptInvite,
+  createInvite,
+  InviteError,
+} from "./family/invites.js";
 import { notifyGuardians } from "./notifications/messaging.js";
 import { sendDueReminders } from "./notifications/reminders.js";
 import { redeemReward as redeemRewardTx, RedeemError } from "./rewards/redeem.js";
@@ -183,6 +190,67 @@ export const sendDailyReminders = onSchedule(
     logger.info("sendDailyReminders", { sent });
   },
 );
+
+/**
+ * Callable (responsável): gera um convite para vincular uma criança
+ * (`role: "child"`, `memberId`) ou adicionar um responsável (`role:
+ * "guardian"`, `email` opcional). Retorna o código e a data de expiração.
+ */
+export const createFamilyInvite = onCall({ region: REGION }, async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid) throw new HttpsError("unauthenticated", "Faça login.");
+
+  const familyId = request.data?.familyId as string | undefined;
+  const role = request.data?.role as string | undefined;
+  if (!familyId || (role !== "child" && role !== "guardian")) {
+    throw new HttpsError("invalid-argument", "familyId e role são obrigatórios.");
+  }
+
+  const db = getFirestore();
+  try {
+    const { code, expiresAt } = await createInvite(db, {
+      familyId,
+      createdByUid: uid,
+      role,
+      memberId: request.data?.memberId as string | undefined,
+      email: request.data?.email as string | undefined,
+    });
+    return { code, expiresAt: expiresAt.toISOString() };
+  } catch (error) {
+    if (error instanceof InviteError) {
+      throw new HttpsError(error.code, error.message);
+    }
+    throw error;
+  }
+});
+
+/**
+ * Callable (autenticado): aceita um convite pelo código. Vincula a conta à
+ * criança / adiciona como responsável. Idempotente.
+ */
+export const acceptFamilyInvite = onCall({ region: REGION }, async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid) throw new HttpsError("unauthenticated", "Faça login.");
+
+  const code = request.data?.code as string | undefined;
+  if (!code) throw new HttpsError("invalid-argument", "code é obrigatório.");
+
+  const db = getFirestore();
+  try {
+    return await acceptInvite(db, {
+      code,
+      uid,
+      displayName: (request.auth?.token.name as string | undefined) ?? null,
+      email: (request.auth?.token.email as string | undefined) ?? null,
+      photoUrl: (request.auth?.token.picture as string | undefined) ?? null,
+    });
+  } catch (error) {
+    if (error instanceof InviteError) {
+      throw new HttpsError(error.code, error.message);
+    }
+    throw error;
+  }
+});
 
 /**
  * Resgate de recompensa: débito transacional de pontos (sem saldo negativo)

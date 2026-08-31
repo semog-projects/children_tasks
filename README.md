@@ -30,8 +30,11 @@ O objetivo é ajudar famílias a organizar a rotina das crianças de forma lúdi
 - [x] Papéis resolvidos pós-login: responsável de alguma família → painel
       completo; criança com login próprio → visão simplificada; sem família →
       tela de boas-vindas
-- [ ] Login próprio da criança (conta Google): convite/vínculo, regras de
-      acesso e ações da criança — issues #33–#35
+- [x] Convite e vínculo da criança à família (conta Google): callables
+      `createFamilyInvite` / `acceptFamilyInvite`, `family.childUids`,
+      `memberUid` denormalizado — issue #33
+- [ ] Regras de acesso da criança (#34) e ações da criança — marcar tarefa,
+      pedir resgate, notificações (#35)
 - [x] Criação/edição/arquivamento de tarefas (pontos, categoria, atribuição,
       repetição, aprovação) com filtros por criança/categoria
 - [x] **Tarefas recorrentes** geradas por Cloud Function (agendada de hora em
