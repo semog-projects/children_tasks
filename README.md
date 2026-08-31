@@ -41,7 +41,8 @@ O objetivo é ajudar famílias a organizar a rotina das crianças de forma lúdi
       gráfico de pontos/dia), próxima recompensa no modo criança, histórico filtrável
 - [ ] Sincronização em tempo real entre dispositivos da família
 - [ ] Notificações (lembretes de tarefas, tarefa concluída, recompensa resgatada)
-- [ ] Suporte offline com sincronização posterior
+- [x] Suporte offline: cache do Firestore, faixa de status de sync, resgate
+      bloqueado sem rede, pontos nunca somados localmente
 
 ## Plataformas alvo
 

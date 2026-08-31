@@ -38,11 +38,26 @@ Future<FirebaseInitStatus> initFirebase() async {
     await Firebase.initializeApp(options: options);
   }
 
+  _enableOfflinePersistence();
+
   if (useFirebaseEmulator) {
     _useEmulators();
   }
 
   return FirebaseInitStatus.ready;
+}
+
+/// Cache offline do Firestore. Mobile já vem ligado; no web precisa ser
+/// explícito. Deve rodar antes de qualquer query.
+void _enableOfflinePersistence() {
+  try {
+    FirebaseFirestore.instance.settings = const Settings(
+      persistenceEnabled: true,
+      cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
+    );
+  } catch (e) {
+    debugPrint('Persistência offline não disponível nesta plataforma: $e');
+  }
 }
 
 bool _emulatorsConnected = false;

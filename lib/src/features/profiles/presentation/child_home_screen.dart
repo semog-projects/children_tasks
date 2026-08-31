@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../common/sync/sync_banner.dart';
 import '../../dashboard/application/dashboard_providers.dart';
 import '../../family/application/family_providers.dart';
 import '../../points/application/points_providers.dart';
@@ -56,7 +57,10 @@ class ChildHomeScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: Center(
+      body: Column(children: [
+        const SyncBanner(),
+        Expanded(
+          child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 480),
           child: instances.when(
@@ -93,7 +97,9 @@ class ChildHomeScreen extends ConsumerWidget {
             },
           ),
         ),
-      ),
+          ),
+        ),
+      ]),
     );
   }
 }
