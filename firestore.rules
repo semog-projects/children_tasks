@@ -122,16 +122,30 @@ service cloud.firestore {
         allow delete: if isGuardian(familyId);
       }
 
+      // Resgates: criados só pela Cloud Function `redeemReward` (débito
+      // transacional). O cliente lê e marca como entregue.
+      match /redemptions/{redemptionId} {
+        allow read: if isGuardian(familyId);
+        allow create, delete: if false;
+        allow update: if isGuardian(familyId)
+          && request.resource.data.rewardId == resource.data.rewardId
+          && request.resource.data.memberId == resource.data.memberId
+          && request.resource.data.cost == resource.data.cost
+          && request.resource.data.status in ['requested', 'delivered', 'canceled'];
+      }
+
       // Append-only: sem update/delete pelo cliente.
       match /ledger/{entryId} {
         allow read: if isGuardian(familyId);
+        // O cliente só cria ajuste manual. `earn` (aprovação) e `redeem`
+        // (resgate) vêm das Cloud Functions (admin, ignora as rules).
         allow create: if isGuardian(familyId)
           && request.resource.data.createdByUid == request.auth.uid
           && request.resource.data.memberId is string
-          && request.resource.data.type in ['earn', 'redeem', 'adjustment']
+          && request.resource.data.type == 'adjustment'
+          && request.resource.data.sourceType == 'manual'
           && request.resource.data.points is int
-          && request.resource.data.points != 0
-          && request.resource.data.sourceType in ['taskInstance', 'reward', 'manual'];
+          && request.resource.data.points != 0;
         allow update, delete: if false;
       }
     }

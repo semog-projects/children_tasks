@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../common/avatar_colors.dart';
-import '../../../data/data_providers.dart';
 import '../../auth/application/auth_providers.dart';
 import '../../family/application/family_providers.dart';
 import '../../family/presentation/family_screen.dart';
+import '../../points/application/points_providers.dart';
+import '../../rewards/presentation/catalog_screen.dart';
+import '../../rewards/presentation/rewards_screen.dart';
 import '../../tasks/application/approval_providers.dart';
 import '../../tasks/application/task_instances_providers.dart';
 import '../../tasks/presentation/approvals_screen.dart';
@@ -43,6 +45,13 @@ class HomeScreen extends ConsumerWidget {
             icon: const Icon(Icons.checklist_rounded),
             onPressed: () => Navigator.of(context).push(
               MaterialPageRoute<void>(builder: (_) => const TasksScreen()),
+            ),
+          ),
+          IconButton(
+            tooltip: 'Recompensas',
+            icon: const Icon(Icons.card_giftcard),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const RewardsScreen()),
             ),
           ),
           IconButton(
@@ -117,11 +126,8 @@ class _ChildCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final family = ref.watch(currentFamilyProvider).asData?.value;
     final instances = ref.watch(childTodayInstancesProvider(childId)).asData?.value;
-    final balance = family == null
-        ? null
-        : ref.watch(_balanceProvider((familyId: family.id, memberId: childId))).asData?.value;
+    final balance = ref.watch(childBalanceProvider(childId)).asData?.value;
 
     final done = instances?.where((i) => i.isApproved).length;
     final total = instances?.length;
@@ -143,9 +149,22 @@ class _ChildCard extends ConsumerWidget {
                   ? 'Sem tarefas hoje'
                   : '$done de $total tarefas hoje',
         ),
-        trailing: balance == null
-            ? null
-            : Text('$balance pts', style: Theme.of(context).textTheme.titleMedium),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (balance != null)
+              Text('$balance pts', style: Theme.of(context).textTheme.titleMedium),
+            IconButton(
+              tooltip: 'Recompensas de $name',
+              icon: const Icon(Icons.card_giftcard),
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => CatalogScreen(memberId: childId, childName: name),
+                ),
+              ),
+            ),
+          ],
+        ),
         onTap: () => Navigator.of(context).push(
           MaterialPageRoute<void>(builder: (_) => TodayScreen(onlyChildId: childId)),
         ),
@@ -153,8 +172,3 @@ class _ChildCard extends ConsumerWidget {
     );
   }
 }
-
-final _balanceProvider =
-    StreamProvider.family<int, ({String familyId, String memberId})>((ref, key) {
-  return ref.watch(ledgerRepositoryProvider).watchBalance(key.familyId, key.memberId);
-});
