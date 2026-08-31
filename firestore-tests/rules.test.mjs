@@ -60,7 +60,7 @@ const validLedger = {
 
 before(async () => {
   testEnv = await initializeTestEnvironment({
-    projectId: 'children-tasks-rules-test',
+    projectId: process.env.GCLOUD_PROJECT ?? 'demo-children-tasks',
     firestore: {
       rules: readFileSync(
         fileURLToPath(new URL('../firestore.rules', import.meta.url)),
