@@ -31,7 +31,8 @@ O objetivo é ajudar famílias a organizar a rotina das crianças de forma lúdi
       modo criança
 - [x] Criação/edição/arquivamento de tarefas (pontos, categoria, atribuição,
       repetição, aprovação) com filtros por criança/categoria
-- [ ] **Tarefas recorrentes** (diárias/semanais) geradas automaticamente por agenda
+- [x] **Tarefas recorrentes** geradas por Cloud Function (agendada de hora em
+      hora + callable disparada pelo app), idempotente, respeitando o fuso
 - [ ] Marcação de conclusão pela criança + **aprovação obrigatória do responsável**
       antes de creditar os pontos
 - [ ] **Sistema de pontos/recompensas** com catálogo de recompensas resgatáveis
@@ -224,8 +225,8 @@ Cada PR roda o workflow **CI** (`.github/workflows/ci.yml`):
 | job | o que roda |
 | --- | --- |
 | Flutter | `flutter analyze` + `flutter test --coverage` |
-| Cloud Functions | `npm ci` + `npm run lint` + `npm run build` em `functions/` |
-| Firestore Security Rules | `firebase emulators:exec` + testes de `firestore-tests/` |
+| Cloud Functions | `npm ci` + `lint` + `build` + `test:unit` em `functions/` |
+| Emulator | `firebase emulators:exec` → testes de `firestore-tests/` + `functions/` (integração) |
 
 Recomendado: proteger a branch `main` exigindo esses 3 checks antes do merge
 (Settings → Branches → Branch protection rules).

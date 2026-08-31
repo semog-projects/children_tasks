@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../common/avatar_colors.dart';
+import '../../../data/models/task_instance.dart';
 import '../../auth/application/auth_providers.dart';
 import '../../family/application/family_providers.dart';
 import '../../family/presentation/family_screen.dart';
+import '../../tasks/application/task_instances_providers.dart';
 import '../../tasks/presentation/tasks_screen.dart';
 
 /// Tela inicial do responsável autenticado, com a família já criada.
@@ -72,25 +74,54 @@ class HomeScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 8),
                   for (final child in list)
-                    Card(
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: colorFromHex(child.avatarColor),
-                          child: Text(
-                            child.displayName.isNotEmpty
-                                ? child.displayName.characters.first.toUpperCase()
-                                : '?',
-                            style: const TextStyle(color: Colors.white),
-                          ),
-                        ),
-                        title: Text(child.displayName),
-                        subtitle: const Text('Tarefas do dia em breve'),
-                      ),
+                    _ChildCard(
+                      childId: child.id,
+                      name: child.displayName,
+                      colorHex: child.avatarColor,
                     ),
                 ],
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ChildCard extends ConsumerWidget {
+  const _ChildCard({required this.childId, required this.name, this.colorHex});
+
+  final String childId;
+  final String name;
+  final String? colorHex;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final instances = ref.watch(childTodayInstancesProvider(childId)).asData?.value;
+    final done = instances
+        ?.where((i) =>
+            i.status == TaskInstanceStatus.approved ||
+            i.status == TaskInstanceStatus.awaitingApproval)
+        .length;
+    final total = instances?.length;
+
+    return Card(
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: colorFromHex(colorHex),
+          child: Text(
+            name.isNotEmpty ? name.characters.first.toUpperCase() : '?',
+            style: const TextStyle(color: Colors.white),
+          ),
+        ),
+        title: Text(name),
+        subtitle: Text(
+          total == null
+              ? '…'
+              : total == 0
+                  ? 'Sem tarefas hoje'
+                  : '$done de $total tarefas hoje',
         ),
       ),
     );

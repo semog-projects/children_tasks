@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
@@ -52,7 +53,11 @@ void _useEmulators() {
 
   const host = firebaseEmulatorHost;
   FirebaseFirestore.instance.useFirestoreEmulator(host, 8080);
+  FirebaseFunctions.instanceFor(region: 'southamerica-east1')
+      .useFunctionsEmulator(host, 5001);
   // ignore: discarded_futures — a API do plugin é assíncrona mas fire-and-forget aqui.
   FirebaseAuth.instance.useAuthEmulator(host, 9099);
-  debugPrint('Firebase: usando emuladores em $host (firestore:8080, auth:9099)');
+  debugPrint(
+    'Firebase: usando emuladores em $host (firestore:8080, auth:9099, functions:5001)',
+  );
 }
