@@ -4,8 +4,9 @@ Aplicativo em **Flutter** para pais criarem e acompanharem **tarefas diárias
 de crianças**, com sistema de pontos e recompensas, integrado ao login Google
 e ao conceito de família do Google.
 
-> ⚠️ **Status:** projeto em fase inicial (bootstrap). Este README descreve a
-> visão e as decisões de arquitetura; a implementação ainda está começando.
+> ⚠️ **Status:** projeto em fase inicial. O scaffold Flutter já existe
+> (tema, Riverpod, locale pt-BR); as features do backlog estão sendo
+> implementadas uma a uma.
 
 ## Visão geral
 
@@ -95,34 +96,43 @@ A investigação de viabilidade confirmou que:
 
 ```
 children_tasks/
-├── lib/            # código Flutter (a criar)
-├── test/           # testes (a criar)
-├── android/        # (gerado pelo flutter create)
-├── ios/            # (gerado pelo flutter create)
-├── web/            # (gerado pelo flutter create)
+├── lib/
+│   ├── main.dart                 # bootstrap: ProviderScope + ChildrenTasksApp
+│   └── src/
+│       ├── app/                  # MaterialApp, tema, locale
+│       ├── common/               # widgets/utilitários compartilhados
+│       └── features/<feature>/   # uma pasta por feature, dividida em:
+│           ├── application/       #   providers Riverpod, casos de uso
+│           ├── data/              #   repositórios, fontes de dados
+│           ├── domain/            #   modelos
+│           └── presentation/      #   telas e widgets
+├── test/           # espelha a estrutura de lib/
+├── android/ ios/ web/ windows/ macos/ linux/   # gerado pelo flutter create
 └── README.md
 ```
 
+Convenções: `application id` / `bundle id` = `br.com.semogdev.childrentasks`;
+gerência de estado com **Riverpod**; lints extras em `analysis_options.yaml`;
+locale fixo `pt_BR`.
+
 ## Como começar (desenvolvimento)
 
-> O scaffold Flutter ainda não foi gerado. Passos previstos:
-
 ```bash
-# Pré-requisitos: Flutter SDK, Dart, Android Studio / Xcode conforme a plataforma
+# Pré-requisitos: Flutter SDK (>= 3.44), Android Studio / Xcode conforme a plataforma
 flutter --version
-
-# Gerar o scaffold (executar uma vez, na raiz do projeto)
-flutter create --org br.com.semogdev --project-name childrentasks .
-# application id / bundle id: br.com.semogdev.childrentasks
 
 # Instalar dependências
 flutter pub get
 
-# Rodar
+# Conferir análise estática e testes
+flutter analyze
+flutter test
+
+# Rodar (escolha o dispositivo com -d, ex.: chrome)
 flutter run
 ```
 
-Configuração do Firebase (após o scaffold):
+Configuração do Firebase (issue #4 — ainda não integrado):
 
 ```bash
 dart pub global activate flutterfire_cli

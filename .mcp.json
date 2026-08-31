@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "harness": {
+      "command": "dotnet",
+      "args": ["dnx", "MCP.Harness", "--yes"],
+      "env": { "GITHUB_TOKEN": "${GITHUB_TOKEN}" }
+    }
+  }
+}
