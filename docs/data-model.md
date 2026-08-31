@@ -35,11 +35,16 @@ Perfil do responsável autenticado. Criado no login (issue #5).
 | campo | tipo | notas |
 |---|---|---|
 | `name` | string | 1–60 chars |
-| `guardianUids` | list\<string> | uids dos responsáveis; ≥ 1 |
+| `guardianUids` | list\<string> | uids dos responsáveis; ≥ 1 — **fonte de verdade das rules** |
+| `guardians` | list\<map> | `{ uid, displayName, photoUrl? }` — exibição (o `users/{uid}` só é legível pelo dono). Auto-heal quando cada responsável abre o app |
 | `timezone` | string | IANA (ex.: `America/Sao_Paulo`); usado na geração de recorrentes |
 | `createdAt` / `updatedAt` | timestamp | server |
 
 ### `families/{familyId}/members/{memberId}`
+
+> **Só crianças.** Responsáveis vivem em `family.guardianUids` +
+> `family.guardians` + `users/{uid}` — o app não cria member docs de
+> `guardian` (o schema permite, mas não é usado hoje).
 
 | campo | tipo | notas |
 |---|---|---|

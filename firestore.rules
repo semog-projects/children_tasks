@@ -48,12 +48,14 @@ service cloud.firestore {
       allow create: if isSignedIn()
         && request.auth.uid in request.resource.data.guardianUids
         && request.resource.data.guardianUids.size() >= 1
+        && request.resource.data.guardians is list
         && isNonEmptyString(request.resource.data.name, 60)
         && request.resource.data.timezone is string;
 
       allow update: if isGuardian(familyId)
         && request.auth.uid in request.resource.data.guardianUids
         && request.resource.data.guardianUids.size() >= 1
+        && request.resource.data.guardians is list
         && isNonEmptyString(request.resource.data.name, 60);
 
       allow delete: if false;

@@ -82,6 +82,7 @@ beforeEach(async () => {
     await setDoc(doc(db, 'families', FAMILY), {
       name: 'Silva',
       guardianUids: [GUARDIAN],
+      guardians: [{ uid: GUARDIAN, displayName: 'Ana' }],
       timezone: 'America/Sao_Paulo',
     });
   });
@@ -98,6 +99,7 @@ test('criar família exige o próprio uid em guardianUids', async () => {
     addDoc(collection(guardianDb(), 'families'), {
       name: 'Nova',
       guardianUids: [GUARDIAN],
+      guardians: [{ uid: GUARDIAN, displayName: 'Ana' }],
       timezone: 'America/Sao_Paulo',
     }),
   );
@@ -105,6 +107,15 @@ test('criar família exige o próprio uid em guardianUids', async () => {
     addDoc(collection(guardianDb(), 'families'), {
       name: 'Alheia',
       guardianUids: ['outro'],
+      guardians: [{ uid: 'outro', displayName: 'X' }],
+      timezone: 'America/Sao_Paulo',
+    }),
+  );
+  // sem o campo guardians -> rejeitado
+  await assertFails(
+    addDoc(collection(guardianDb(), 'families'), {
+      name: 'Sem guardians',
+      guardianUids: [GUARDIAN],
       timezone: 'America/Sao_Paulo',
     }),
   );
