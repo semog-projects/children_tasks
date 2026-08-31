@@ -3,6 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../features/auth/presentation/auth_gate.dart';
+import 'settings/theme_settings.dart';
 import 'theme.dart';
 
 /// Locale único do app. O projeto é PT-BR apenas (ver README).
@@ -26,6 +27,7 @@ class ChildrenTasksApp extends ConsumerWidget {
       navigatorKey: navigatorKey,
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
+      themeMode: ref.watch(themeModeProvider),
       locale: kAppLocale,
       supportedLocales: const [kAppLocale],
       localizationsDelegates: const [

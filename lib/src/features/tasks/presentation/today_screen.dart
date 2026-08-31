@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../common/avatar_colors.dart';
+import '../../../common/child_avatar.dart';
 import '../../../data/models/member.dart';
 import '../../../data/models/task_instance.dart';
 import '../../family/application/family_providers.dart';
@@ -70,14 +70,9 @@ class _ChildSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         ListTile(
-          leading: CircleAvatar(
-            backgroundColor: colorFromHex(child.avatarColor),
-            child: Text(
-              child.displayName.isNotEmpty
-                  ? child.displayName.characters.first.toUpperCase()
-                  : '?',
-              style: const TextStyle(color: Colors.white),
-            ),
+          leading: ChildAvatar(
+            name: child.displayName,
+            colorHex: child.avatarColor,
           ),
           title: Text(child.displayName),
           subtitle: Text(

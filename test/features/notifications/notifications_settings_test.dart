@@ -14,6 +14,8 @@ void main() {
 
     await tester.tap(find.byTooltip('Família'));
     await tester.pumpAndSettle();
+    await tester.tap(find.text('Ajustes'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Notificações'));
     await tester.pumpAndSettle();
 

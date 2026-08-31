@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../common/avatar_colors.dart';
+import '../../../common/child_avatar.dart';
 import '../../../data/models/member.dart';
 import '../../family/application/family_providers.dart';
 import '../../points/application/points_providers.dart';
@@ -73,14 +73,9 @@ class _ChildSummary extends ConsumerWidget {
           children: [
             Row(
               children: [
-                CircleAvatar(
-                  backgroundColor: colorFromHex(child.avatarColor),
-                  child: Text(
-                    child.displayName.isNotEmpty
-                        ? child.displayName.characters.first.toUpperCase()
-                        : '?',
-                    style: const TextStyle(color: Colors.white),
-                  ),
+                ChildAvatar(
+                  name: child.displayName,
+                  colorHex: child.avatarColor,
                 ),
                 const SizedBox(width: 12),
                 Text(child.displayName, style: theme.textTheme.titleMedium),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../common/category_style.dart';
 import '../../../data/models/member.dart';
 import '../../../data/models/task.dart';
 import '../../family/application/family_providers.dart';
@@ -122,6 +123,11 @@ class _TaskTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return ListTile(
+      leading: CircleAvatar(
+        backgroundColor: task.category.accent.withValues(alpha: 0.16),
+        foregroundColor: task.category.accent,
+        child: Icon(task.category.icon),
+      ),
       title: Text(task.title),
       subtitle: Text(
         '${task.category.label} · ${task.points} pts · ${task.recurrence.summary} · $_assigneeLabel',
