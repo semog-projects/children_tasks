@@ -5,19 +5,18 @@ Definido na issue #6. Base para tarefas, aprovação, pontos e recompensas.
 ## Autenticação: responsável e criança
 
 > **Revisão (Sprint 2, issues #32–#35):** a decisão original "só o responsável
-> autentica" está sendo revertida. Cada criança passa a ter **login próprio
-> (conta Google)** e usa o próprio aparelho — sai o "modo criança" local por
-> PIN da issue #8. A entrega é incremental:
+> autentica" foi revertida. Cada criança tem **login próprio (conta Google)** e
+> usa o próprio aparelho — saiu o "modo criança" local por PIN da issue #8.
+> Entrega incremental:
 > - **#32 (feito):** o app resolve o *papel* pós-login (responsável / criança /
 >   sem família) e monta a navegação. Campo `families.childUids` adicionado.
-> - **#33:** convite e vínculo `auth.uid` ↔ `members/{id}` (`linkedUid` +
->   `childUids`), Cloud Functions gravam `memberUid` em `taskInstances`/`ledger`.
-> - **#34:** Security Rules ganham o papel "criança" e a trava de
->   auto-aprovação passa do cliente para o servidor.
-> - **#35:** ações da criança (marcar tarefa, pedir resgate) e notificações.
-
-Até a #34, as rules ainda distinguem apenas "é responsável desta família" vs.
-"não é", e as restrições do modo criança são aplicadas **no cliente**.
+> - **#33 (feito):** convite e vínculo `auth.uid` ↔ `members/{id}` (`linkedUid`
+>   + `childUids`), Functions gravam `memberUid` em `taskInstances`/`ledger`.
+> - **#34 (feito):** rules com o papel "criança"; trava de auto-aprovação no
+>   servidor (ver "Regras de segurança").
+> - **#35:** ações da criança (marcar tarefa, pedir resgate) e notificações —
+>   o cliente ainda precisa religar as leituras da criança a queries por
+>   `memberUid`.
 
 ## Coleções
 
@@ -229,10 +228,21 @@ Ver `firestore.indexes.json`:
 
 `firestore.rules`. Resumo:
 
-- `families/{fid}` e todas as subcoleções: acesso total **apenas** para
-  `request.auth.uid in family.guardianUids`.
+- **Responsável** (`uid in family.guardianUids`): acesso total a `families/{fid}`
+  e todas as subcoleções.
+- **Criança** (`uid in family.childUids`, issue #34):
+  - `get`/`list` da própria família; `read` de `members`, `tasks`, `rewards`.
+  - `read` só das PRÓPRIAS `taskInstances`/`ledger`/`redemptions` — via
+    `resource.data.memberUid == uid` (a query precisa filtrar por `memberUid`).
+  - `update` só da própria `taskInstance`: `pending → awaitingApproval`, ou
+    `→ approved` quando `requiresApproval == false`; mexe só em
+    `status`/`completedAt`/`updatedAt`. **Não** grava `pointsAwarded`,
+    `reviewedByUid`, `memberUid`, nem se autoaprova (trava no servidor).
+  - sem escrita em `members`/`tasks`/`rewards`/`family`/`ledger`.
+- `pointsAwarded` e `memberUid` em `taskInstances` são imutáveis pelo cliente
+  (só as Functions).
 - `create` de `families` exige que o criador esteja em `guardianUids`.
-- `ledger`: responsável pode `create` e `read`; `update`/`delete` proibidos.
+- `ledger`: só `adjustment`/`manual` pelo responsável; `update`/`delete` proibidos.
 - Validação de formato em `create`/`update` (enums, ranges, campos obrigatórios).
 - `users/{uid}`: cada um só o próprio doc.
 - `familyInvites/{code}`: cliente não lê nem escreve (só as Functions).

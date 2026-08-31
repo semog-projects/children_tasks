@@ -1,11 +1,16 @@
 rules_version = '2';
 
-// Modelo de dados: docs/data-model.md (issue #6).
+// Modelo de dados: docs/data-model.md (issues #6, #33, #34).
 //
-// Premissa: só o responsável autentica. Crianças são perfis locais na sessão
-// do responsável (issue #8). Portanto as regras distinguem apenas
-// "é responsável desta família" vs. "não é". As restrições do modo criança
-// são aplicadas no cliente.
+// Dois papéis por família:
+//  - responsável: `uid in family.guardianUids` — acesso total.
+//  - criança: `uid in family.childUids` (login próprio, issue #33) — leitura
+//    da família/tarefas/recompensas, e das PRÓPRIAS `taskInstances`/`ledger`/
+//    `redemptions` (via `memberUid == uid`, denormalizado pelas Functions).
+//    A criança só marca a própria tarefa (`pending -> awaitingApproval`, ou
+//    `-> approved` quando não exige aprovação) — a trava de auto-aprovação
+//    é do servidor. `earn`/`redeem` no ledger e o crédito (`pointsAwarded`)
+//    seguem exclusivos das Functions.
 
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -21,6 +26,16 @@ service cloud.firestore {
     function isGuardian(familyId) {
       return isSignedIn()
         && request.auth.uid in familyData(familyId).guardianUids;
+    }
+
+    function isChildOf(familyId) {
+      return isSignedIn()
+        && request.auth.uid in familyData(familyId).childUids;
+    }
+
+    // Doc (taskInstance / ledger / redemption) da própria criança logada.
+    function ownsChildDoc(data) {
+      return isSignedIn() && data.get('memberUid', null) == request.auth.uid;
     }
 
     function isNonEmptyString(v, maxLen) {
@@ -53,11 +68,12 @@ service cloud.firestore {
 
     // ---- families ----------------------------------------------------
     match /families/{familyId} {
-      allow get: if isGuardian(familyId);
-      // Só devolve famílias em que o solicitante já é responsável
-      // (a query precisa filtrar por guardianUids arrayContains uid).
+      allow get: if isGuardian(familyId) || isChildOf(familyId);
+      // Só devolve famílias do solicitante (a query filtra por
+      // guardianUids/childUids arrayContains uid).
       allow list: if isSignedIn()
-        && request.auth.uid in resource.data.guardianUids;
+        && (request.auth.uid in resource.data.guardianUids
+            || request.auth.uid in resource.data.childUids);
 
       allow create: if isSignedIn()
         && request.auth.uid in request.resource.data.guardianUids
@@ -75,7 +91,7 @@ service cloud.firestore {
       allow delete: if false;
 
       match /members/{memberId} {
-        allow read: if isGuardian(familyId);
+        allow read: if isGuardian(familyId) || isChildOf(familyId);
         allow create, update: if isGuardian(familyId)
           && request.resource.data.type in ['guardian', 'child']
           && isNonEmptyString(request.resource.data.displayName, 60);
@@ -83,7 +99,7 @@ service cloud.firestore {
       }
 
       match /tasks/{taskId} {
-        allow read: if isGuardian(familyId);
+        allow read: if isGuardian(familyId) || isChildOf(familyId);
         allow create, update: if isGuardian(familyId)
           && isNonEmptyString(request.resource.data.title, 80)
           && request.resource.data.points is int
@@ -97,7 +113,10 @@ service cloud.firestore {
       }
 
       match /taskInstances/{instanceId} {
-        allow read: if isGuardian(familyId);
+        // Responsável vê tudo; criança só as próprias (query precisa filtrar
+        // por `memberUid == uid`).
+        allow read: if isGuardian(familyId)
+          || (isChildOf(familyId) && ownsChildDoc(resource.data));
 
         allow create: if isGuardian(familyId)
           && request.resource.data.status in
@@ -105,27 +124,51 @@ service cloud.firestore {
           && request.resource.data.taskId is string
           && request.resource.data.memberId is string;
 
-        // O cliente muda status e revisão, mas NÃO o crédito (pointsAwarded)
-        // — isso é a Cloud Function que faz. E só chega a `approved` vindo de
-        // `awaitingApproval` ou quando a tarefa não exige aprovação.
-        allow update: if isGuardian(familyId)
-          && request.resource.data.status in
-             ['pending', 'awaitingApproval', 'approved', 'rejected']
-          && request.resource.data.taskId == resource.data.taskId
+        // `pointsAwarded` (crédito) e `memberUid` são das Functions — o
+        // cliente nunca os altera. Responsável muda status/revisão livremente
+        // (só não pula para `approved` sem passar por `awaitingApproval`
+        // quando a tarefa exige aprovação). A criança só marca a PRÓPRIA
+        // tarefa: `pending -> awaitingApproval` (ou `-> approved` quando não
+        // exige aprovação), mexendo apenas em status/completedAt/updatedAt.
+        allow update: if
+          request.resource.data.taskId == resource.data.taskId
           && request.resource.data.memberId == resource.data.memberId
           && request.resource.data.get('pointsAwarded', null)
              == resource.data.get('pointsAwarded', null)
+          && request.resource.data.get('memberUid', null)
+             == resource.data.get('memberUid', null)
           && (
-            request.resource.data.status != 'approved'
-            || resource.data.status == 'awaitingApproval'
-            || resource.data.requiresApproval == false
+            (
+              isGuardian(familyId)
+              && request.resource.data.status in
+                 ['pending', 'awaitingApproval', 'approved', 'rejected']
+              && (
+                request.resource.data.status != 'approved'
+                || resource.data.status == 'awaitingApproval'
+                || resource.data.requiresApproval == false
+              )
+            )
+            || (
+              isChildOf(familyId)
+              && ownsChildDoc(resource.data)
+              && resource.data.status == 'pending'
+              && request.resource.data.diff(resource.data).affectedKeys()
+                 .hasOnly(['status', 'completedAt', 'updatedAt'])
+              && (
+                request.resource.data.status == 'awaitingApproval'
+                || (
+                  request.resource.data.status == 'approved'
+                  && resource.data.requiresApproval == false
+                )
+              )
+            )
           );
 
         allow delete: if isGuardian(familyId);
       }
 
       match /rewards/{rewardId} {
-        allow read: if isGuardian(familyId);
+        allow read: if isGuardian(familyId) || isChildOf(familyId);
         allow create, update: if isGuardian(familyId)
           && isNonEmptyString(request.resource.data.title, 80)
           && request.resource.data.cost is int
@@ -136,9 +179,11 @@ service cloud.firestore {
       }
 
       // Resgates: criados só pela Cloud Function `redeemReward` (débito
-      // transacional). O cliente lê e marca como entregue.
+      // transacional). O responsável lê e marca como entregue; a criança lê
+      // os próprios.
       match /redemptions/{redemptionId} {
-        allow read: if isGuardian(familyId);
+        allow read: if isGuardian(familyId)
+          || (isChildOf(familyId) && ownsChildDoc(resource.data));
         allow create, delete: if false;
         allow update: if isGuardian(familyId)
           && request.resource.data.rewardId == resource.data.rewardId
@@ -149,7 +194,8 @@ service cloud.firestore {
 
       // Append-only: sem update/delete pelo cliente.
       match /ledger/{entryId} {
-        allow read: if isGuardian(familyId);
+        allow read: if isGuardian(familyId)
+          || (isChildOf(familyId) && ownsChildDoc(resource.data));
         // O cliente só cria ajuste manual. `earn` (aprovação) e `redeem`
         // (resgate) vêm das Cloud Functions (admin, ignora as rules).
         allow create: if isGuardian(familyId)
