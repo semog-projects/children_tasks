@@ -35,6 +35,7 @@ class Family {
     required this.name,
     required this.guardianUids,
     this.guardians = const [],
+    this.childUids = const [],
     required this.timezone,
     this.createdAt,
     this.updatedAt,
@@ -45,6 +46,11 @@ class Family {
 
   /// uids dos responsáveis — fonte de verdade das Security Rules.
   final List<String> guardianUids;
+
+  /// uids das crianças com login próprio vinculado (issue #33). Espelho de
+  /// `members/{id}.linkedUid` para `type == 'child'`; gerido pelas Functions.
+  /// Fonte de verdade das rules para o papel "criança".
+  final List<String> childUids;
 
   /// Exibição dos responsáveis (nome/foto). Mantido em sincronia por
   /// auto-heal quando cada responsável abre o app.
@@ -74,6 +80,8 @@ class Family {
           .cast<Map<String, dynamic>>()
           .map(GuardianRef.fromMap)
           .toList(),
+      childUids:
+          (data['childUids'] as List<dynamic>? ?? const []).cast<String>(),
       timezone: data['timezone'] as String? ?? 'America/Sao_Paulo',
       createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
       updatedAt: (data['updatedAt'] as Timestamp?)?.toDate(),
@@ -88,6 +96,8 @@ class Family {
         'timezone': timezone,
       };
 
+  /// `childUids` fica de fora de propósito: é gerido pelas Cloud Functions
+  /// (arrayUnion no vínculo da criança); um `update()` parcial não o toca.
   Map<String, dynamic> toUpdateData() => {
         'name': name,
         'guardianUids': guardianUids,
@@ -99,6 +109,7 @@ class Family {
     String? name,
     List<String>? guardianUids,
     List<GuardianRef>? guardians,
+    List<String>? childUids,
     String? timezone,
   }) =>
       Family(
@@ -106,6 +117,7 @@ class Family {
         name: name ?? this.name,
         guardianUids: guardianUids ?? this.guardianUids,
         guardians: guardians ?? this.guardians,
+        childUids: childUids ?? this.childUids,
         timezone: timezone ?? this.timezone,
         createdAt: createdAt,
         updatedAt: updatedAt,

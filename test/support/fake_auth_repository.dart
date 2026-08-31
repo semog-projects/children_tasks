@@ -14,8 +14,12 @@ class FakeAuthRepository implements AuthRepository {
   /// Se fornecido, roda no lugar do login padrão (para simular erro/cancelamento).
   final Future<void> Function(FakeAuthRepository repo)? onSignIn;
 
-  static User user({String? name = 'Ana', String? email = 'ana@example.com'}) =>
-      MockUser(displayName: name, email: email, uid: 'uid-ana');
+  static User user({
+    String? name = 'Ana',
+    String? email = 'ana@example.com',
+    String uid = 'uid-ana',
+  }) =>
+      MockUser(displayName: name, email: email, uid: uid);
 
   @override
   Stream<User?> authStateChanges() async* {

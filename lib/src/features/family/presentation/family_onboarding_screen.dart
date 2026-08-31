@@ -41,6 +41,15 @@ class _FamilyOnboardingScreenState extends ConsumerState<FamilyOnboardingScreen>
       }
     });
 
+    // Assim que a família passa a existir, o `RoleGate` troca a raiz por si só;
+    // se esta tela foi empilhada pela [WelcomeScreen], sai da pilha.
+    ref.listen(guardianFamiliesProvider, (_, next) {
+      final hasFamily = (next.asData?.value ?? const []).isNotEmpty;
+      if (hasFamily && mounted && Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
+      }
+    });
+
     final busy = ref.watch(familyControllerProvider).isLoading;
     final theme = Theme.of(context);
 

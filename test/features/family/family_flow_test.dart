@@ -11,12 +11,15 @@ void main() {
     );
     await pumpSettled(tester, app.widget);
 
+    await tester.tap(find.text('Criar uma família'));
+    await tester.pumpAndSettle();
+
     await tester.enterText(find.byType(TextFormField), 'Família Nova');
     await tester.tap(find.text('Criar família'));
     await tester.pumpAndSettle();
 
-    // Família criada; como não há PIN, cai na criação de PIN.
-    expect(find.text('Criar PIN'), findsOneWidget);
+    // Família criada -> o RoleGate troca a raiz pela home do responsável.
+    expect(find.widgetWithText(AppBar, 'Família Nova'), findsOneWidget);
 
     final families = await app.db.collection('families').get();
     expect(families.docs.single.data()['name'], 'Família Nova');

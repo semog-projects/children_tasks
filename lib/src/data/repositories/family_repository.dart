@@ -17,6 +17,15 @@ class FamilyRepository {
         .map((snap) => snap.docs.map(Family.fromDoc).toList());
   }
 
+  /// Famílias em que [uid] é uma criança com login próprio vinculado
+  /// (`family.childUids`, gerido pela Function do vínculo — issue #33).
+  Stream<List<Family>> watchForChild(String uid) {
+    return _refs.families
+        .where('childUids', arrayContains: uid)
+        .snapshots()
+        .map((snap) => snap.docs.map(Family.fromDoc).toList());
+  }
+
   Stream<Family?> watch(String familyId) {
     return _refs
         .family(familyId)

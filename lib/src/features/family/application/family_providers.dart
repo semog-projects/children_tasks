@@ -6,15 +6,37 @@ import '../../../data/models/family.dart';
 import '../../../data/models/member.dart';
 import '../../auth/application/auth_providers.dart';
 
-/// Família atual do responsável logado. `null` = ainda não criou nenhuma
-/// (dispara o onboarding). Se estiver em mais de uma, usa a primeira.
-final currentFamilyProvider = StreamProvider<Family?>((ref) {
+/// Famílias em que o usuário logado é responsável.
+final guardianFamiliesProvider = StreamProvider<List<Family>>((ref) {
+  final user = ref.watch(currentUserProvider);
+  if (user == null) return Stream.value(const []);
+  return ref.watch(familyRepositoryProvider).watchForGuardian(user.uid);
+});
+
+/// Família em que o usuário logado entra como criança (login próprio), ou
+/// `null`. Ver [FamilyRepository.watchForChild].
+final childFamilyProvider = StreamProvider<Family?>((ref) {
   final user = ref.watch(currentUserProvider);
   if (user == null) return Stream.value(null);
   return ref
       .watch(familyRepositoryProvider)
-      .watchForGuardian(user.uid)
+      .watchForChild(user.uid)
       .map((families) => families.isEmpty ? null : families.first);
+});
+
+/// Família ativa da sessão. O papel de responsável tem prioridade; quem não é
+/// responsável de nenhuma cai na família onde é criança. `null` = logado mas
+/// sem família (dispara a tela de boas-vindas). Base para tarefas, recompensas,
+/// pontos e sync — serve os dois papéis.
+final currentFamilyProvider = Provider<AsyncValue<Family?>>((ref) {
+  final guardian = ref.watch(guardianFamiliesProvider);
+  return guardian.when(
+    loading: () => const AsyncValue.loading(),
+    error: (e, st) => AsyncValue<Family?>.error(e, st),
+    data: (families) => families.isNotEmpty
+        ? AsyncValue.data(families.first)
+        : ref.watch(childFamilyProvider),
+  );
 });
 
 /// Id da família atual (lança se não houver — use só depois do onboarding).

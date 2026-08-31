@@ -2,17 +2,22 @@
 
 Definido na issue #6. Base para tarefas, aprovação, pontos e recompensas.
 
-## Decisão: só o responsável autentica
+## Autenticação: responsável e criança
 
-Crianças **não têm conta** própria (por ora). O app tem "modo criança" como
-troca de perfil local dentro da sessão do responsável (issue #8), protegida
-por PIN. Consequência:
+> **Revisão (Sprint 2, issues #32–#35):** a decisão original "só o responsável
+> autentica" está sendo revertida. Cada criança passa a ter **login próprio
+> (conta Google)** e usa o próprio aparelho — sai o "modo criança" local por
+> PIN da issue #8. A entrega é incremental:
+> - **#32 (feito):** o app resolve o *papel* pós-login (responsável / criança /
+>   sem família) e monta a navegação. Campo `families.childUids` adicionado.
+> - **#33:** convite e vínculo `auth.uid` ↔ `members/{id}` (`linkedUid` +
+>   `childUids`), Cloud Functions gravam `memberUid` em `taskInstances`/`ledger`.
+> - **#34:** Security Rules ganham o papel "criança" e a trava de
+>   auto-aprovação passa do cliente para o servidor.
+> - **#35:** ações da criança (marcar tarefa, pedir resgate) e notificações.
 
-- Todo acesso ao Firestore acontece sob o `auth.uid` de um **responsável**.
-- As Security Rules distinguem apenas "é responsável desta família" vs. "não é".
-- As restrições do modo criança (não editar tarefas, não se autoaprovar) são
-  aplicadas **no cliente**. O campo `members.linkedUid` já existe para, no
-  futuro, permitir login de criança e regras mais finas sem migração.
+Até a #34, as rules ainda distinguem apenas "é responsável desta família" vs.
+"não é", e as restrições do modo criança são aplicadas **no cliente**.
 
 ## Coleções
 
@@ -29,7 +34,7 @@ Perfil do responsável autenticado. Criado no login (issue #5).
 | `photoUrl` | string? | do Google |
 | `createdAt` | timestamp | server, só na criação |
 | `lastLoginAt` | timestamp | server, todo login |
-| `pinHash` / `pinSalt` | string? | PIN do responsável (issue #8): SHA-256 com salt. Cadeado do "modo criança → modo responsável" |
+| `pinHash` / `pinSalt` | string? | Reservado para um app-lock opcional. Era o cadeado do "modo criança → modo responsável" (issue #8), removido na #32 junto com o modo criança local |
 | `notif` | map | preferências de notificação (issue #14): `pendingApproval`, `approvalResult`, `redemption`, `dailyReminder` (bool, default true), `reminderHour` (int 0–23, default 18), `lastReminderDate` (`YYYY-MM-DD`, dedup do lembrete) |
 
 Subcoleção `users/{uid}/fcmTokens/{token}` — um doc por dispositivo (id = o
@@ -44,6 +49,7 @@ falhar o envio.
 | `name` | string | 1–60 chars |
 | `guardianUids` | list\<string> | uids dos responsáveis; ≥ 1 — **fonte de verdade das rules** |
 | `guardians` | list\<map> | `{ uid, displayName, photoUrl? }` — exibição (o `users/{uid}` só é legível pelo dono). Auto-heal quando cada responsável abre o app |
+| `childUids` | list\<string> | uids das crianças com login próprio vinculado (issue #33). Espelho de `members/{id}.linkedUid` para `type == 'child'`; gerido pelas Functions. **Fonte de verdade das rules** para o papel "criança" (#34) |
 | `timezone` | string | IANA (ex.: `America/Sao_Paulo`); usado na geração de recorrentes |
 | `createdAt` / `updatedAt` | timestamp | server |
 
@@ -59,8 +65,8 @@ falhar o envio.
 | `displayName` | string | 1–60 chars |
 | `avatarColor` | string? | hex `#RRGGBB` |
 | `photoUrl` | string? | responsáveis: foto do Google |
-| `linkedUid` | string? | responsável: seu uid; criança: reservado p/ futuro |
-| `pinHash` | string? | só `guardian`; definido na issue #8 |
+| `linkedUid` | string? | responsável: seu uid; criança: uid da conta Google vinculada por convite (issue #33) — espelhado em `family.childUids` |
+| `pinHash` | string? | legado da issue #8 (modo responsável); não usado desde a #32 |
 | `birthDate` | timestamp? | criança (opcional) |
 | `createdAt` / `updatedAt` | timestamp | server |
 
