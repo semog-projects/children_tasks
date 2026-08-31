@@ -109,13 +109,21 @@ exibe só a data, então não há ambiguidade. Ver `functions/src/shared/dates.t
 | `reviewedByUid` | string? | responsável que aprovou/rejeitou |
 | `reviewedAt` | timestamp? | |
 | `rejectionReason` | string? | |
-| `pointsAwarded` | int? | creditado na aprovação (= `pointsSnapshot`) |
+| `pointsAwarded` | int? | escrito **só pela Function** ao aprovar (= `pointsSnapshot`) |
 | `createdAt` / `updatedAt` | timestamp | server |
 
-Transições válidas de `status` (issue #9):
-`pending → awaitingApproval → approved`
-`pending → awaitingApproval → rejected → pending`
-`pending → approved` (quando `requiresApproval == false`)
+Transições de `status` (issue #11):
+- criança marca feita: `pending → awaitingApproval` (ou `→ approved` se
+  `requiresApproval == false`), grava `completedAt`, limpa `rejectionReason`
+- responsável aprova: `awaitingApproval → approved` + `reviewedByUid/reviewedAt`
+- responsável rejeita: `awaitingApproval → pending` + `rejectionReason`,
+  limpa `completedAt` (a criança pode refazer)
+
+**Crédito de pontos:** a Function `onTaskInstanceWritten` reage à transição
+para `approved` e cria `ledger/earn__{instanceId}` (id determinístico →
+idempotente, revisão dupla não credita 2×). As rules impedem o cliente de
+gravar `pointsAwarded` ou pular direto para `approved` quando a tarefa exige
+aprovação.
 
 ### `families/{familyId}/rewards/{rewardId}`
 

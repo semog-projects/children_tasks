@@ -162,6 +162,43 @@ test('ledger: points = 0 e createdByUid diferente do auth são rejeitados', asyn
   await assertFails(addDoc(ledger, { ...validLedger, createdByUid: 'alguem' }));
 });
 
+test('taskInstances: responsável muda status, mas não pointsAwarded nem pula para approved', async () => {
+  const col = `families/${FAMILY}/taskInstances`;
+  const ref = doc(guardianDb(), `${col}/i1`);
+
+  await assertSucceeds(
+    setDoc(ref, {
+      taskId: 't1',
+      memberId: 'm1',
+      status: 'pending',
+      requiresApproval: true,
+    }),
+  );
+
+  // pending -> awaitingApproval: ok
+  await assertSucceeds(updateDoc(ref, { status: 'awaitingApproval' }));
+
+  // cliente não pode gravar pointsAwarded
+  await assertFails(updateDoc(ref, { pointsAwarded: 10 }));
+
+  // awaitingApproval -> approved: ok
+  await assertSucceeds(updateDoc(ref, { status: 'approved' }));
+
+  // pending -> approved direto (exige aprovação): negado
+  const ref2 = doc(guardianDb(), `${col}/i2`);
+  await assertSucceeds(
+    setDoc(ref2, { taskId: 't1', memberId: 'm1', status: 'pending', requiresApproval: true }),
+  );
+  await assertFails(updateDoc(ref2, { status: 'approved' }));
+
+  // pending -> approved quando NÃO exige aprovação: ok
+  const ref3 = doc(guardianDb(), `${col}/i3`);
+  await assertSucceeds(
+    setDoc(ref3, { taskId: 't1', memberId: 'm1', status: 'pending', requiresApproval: false }),
+  );
+  await assertSucceeds(updateDoc(ref3, { status: 'approved' }));
+});
+
 test('membros/recompensas/instâncias: estranho não acessa', async () => {
   for (const sub of ['members', 'rewards', 'taskInstances']) {
     await assertFails(

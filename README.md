@@ -33,8 +33,8 @@ O objetivo é ajudar famílias a organizar a rotina das crianças de forma lúdi
       repetição, aprovação) com filtros por criança/categoria
 - [x] **Tarefas recorrentes** geradas por Cloud Function (agendada de hora em
       hora + callable disparada pelo app), idempotente, respeitando o fuso
-- [ ] Marcação de conclusão pela criança + **aprovação obrigatória do responsável**
-      antes de creditar os pontos
+- [x] Marcação de conclusão + **aprovação do responsável**; pontos creditados
+      no ledger por Cloud Function (idempotente); rejeição volta pra pendente
 - [ ] **Sistema de pontos/recompensas** com catálogo de recompensas resgatáveis
 - [ ] Painel de progresso e histórico
 - [ ] Sincronização em tempo real entre dispositivos da família

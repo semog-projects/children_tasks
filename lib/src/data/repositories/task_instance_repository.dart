@@ -3,8 +3,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../firestore_refs.dart';
 import '../models/task_instance.dart';
 
-/// Leitura das ocorrências. A geração é feita por Cloud Function (#10);
-/// a marcação/aprovação vem na #11.
+/// Leitura das ocorrências (geradas pela Cloud Function, #10) e as transições
+/// de estado da marcação/aprovação (#11).
+///
+/// O crédito de pontos no `ledger` é feito por Cloud Function reagindo à
+/// transição para `approved` — de forma idempotente. O cliente só muda o
+/// `status` e os campos de revisão.
 class TaskInstanceRepository {
   TaskInstanceRepository(this._refs);
 
@@ -31,5 +35,60 @@ class TaskInstanceRepository {
         .where('date', isEqualTo: Timestamp.fromDate(utcMidnight))
         .snapshots()
         .map((snap) => snap.docs.map(TaskInstance.fromDoc).toList());
+  }
+
+  /// Fila de aprovação: ocorrências aguardando revisão do responsável.
+  Stream<List<TaskInstance>> watchPendingApprovals(String familyId) {
+    return _refs
+        .taskInstances(familyId)
+        .where('status', isEqualTo: TaskInstanceStatus.awaitingApproval.name)
+        .snapshots()
+        .map((snap) => (snap.docs.map(TaskInstance.fromDoc).toList())
+          ..sort((a, b) => (a.completedAt ?? a.date).compareTo(b.completedAt ?? b.date)));
+  }
+
+  DocumentReference<Map<String, dynamic>> _doc(String familyId, String instanceId) =>
+      _refs.taskInstances(familyId).doc(instanceId);
+
+  /// A criança marcou a tarefa como feita.
+  /// Vai para `awaitingApproval`, ou direto para `approved` se a tarefa não
+  /// exige aprovação (aí a Function credita os pontos).
+  Future<void> markDone(String familyId, TaskInstance instance) {
+    final next = instance.requiresApproval
+        ? TaskInstanceStatus.awaitingApproval
+        : TaskInstanceStatus.approved;
+    return _doc(familyId, instance.id).update({
+      'status': next.name,
+      'completedAt': FieldValue.serverTimestamp(),
+      'rejectionReason': null,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  /// O responsável aprovou. A Function credita os pontos no `ledger`.
+  Future<void> approve(String familyId, String instanceId, String reviewerUid) {
+    return _doc(familyId, instanceId).update({
+      'status': TaskInstanceStatus.approved.name,
+      'reviewedByUid': reviewerUid,
+      'reviewedAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  /// O responsável rejeitou: volta para `pending` com o motivo.
+  Future<void> reject(
+    String familyId,
+    String instanceId,
+    String reviewerUid, {
+    String? reason,
+  }) {
+    return _doc(familyId, instanceId).update({
+      'status': TaskInstanceStatus.pending.name,
+      'reviewedByUid': reviewerUid,
+      'reviewedAt': FieldValue.serverTimestamp(),
+      'rejectionReason': reason,
+      'completedAt': null,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
   }
 }
