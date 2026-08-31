@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../data/models/member.dart';
 import '../../auth/application/auth_providers.dart';
 import '../../family/application/family_providers.dart';
 import '../../notifications/application/notifications_service.dart';
@@ -21,15 +22,26 @@ class _ChildShellState extends ConsumerState<ChildShell> {
   bool _started = false;
 
   @override
-  Widget build(BuildContext context) {
-    ref.listen(currentChildMemberProvider, (_, next) {
-      if (!_started && next != null) {
-        _started = true;
-        requestTodayInstances(ref);
-        ref.read(notificationsServiceProvider).start();
-      }
-    });
+  void initState() {
+    super.initState();
+    // `fireImmediately`: quando este shell monta, o `RoleGate` já resolveu o
+    // vínculo, então um `ref.listen` sem isso nunca dispararia.
+    ref.listenManual<Member?>(
+      currentChildMemberProvider,
+      (_, next) => _maybeStart(next),
+      fireImmediately: true,
+    );
+  }
 
+  void _maybeStart(Member? member) {
+    if (_started || member == null) return;
+    _started = true;
+    requestTodayInstances(ref);
+    ref.read(notificationsServiceProvider).start();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final member = ref.watch(currentChildMemberProvider);
     if (member != null) {
       return ChildHomeScreen(memberId: member.id);
