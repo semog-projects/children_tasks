@@ -6,7 +6,7 @@ import '../../support/test_harness.dart';
 
 void main() {
   testWidgets('onboarding cria a família e vai para a home', (tester) async {
-    final app = buildTestApp(
+    final app = await buildTestApp(
       auth: FakeAuthRepository(initialUser: FakeAuthRepository.user()),
     );
     await pumpSettled(tester, app.widget);
@@ -15,15 +15,16 @@ void main() {
     await tester.tap(find.text('Criar família'));
     await tester.pumpAndSettle();
 
-    // AppBar da home mostra o nome da família.
-    expect(find.text('Família Nova'), findsOneWidget);
+    // Família criada; como não há PIN, cai na criação de PIN.
+    expect(find.text('Criar PIN'), findsOneWidget);
 
     final families = await app.db.collection('families').get();
+    expect(families.docs.single.data()['name'], 'Família Nova');
     expect(families.docs.single.data()['guardianUids'], ['uid-ana']);
   });
 
   testWidgets('adiciona uma criança pela tela da família', (tester) async {
-    final app = buildTestApp(
+    final app = await buildTestApp(
       auth: FakeAuthRepository(initialUser: FakeAuthRepository.user()),
     );
     final familyId = await seedFamily(app.db, uid: 'uid-ana');
@@ -46,7 +47,7 @@ void main() {
   });
 
   testWidgets('remove uma criança após confirmação', (tester) async {
-    final app = buildTestApp(
+    final app = await buildTestApp(
       auth: FakeAuthRepository(initialUser: FakeAuthRepository.user()),
     );
     final familyId = await seedFamily(app.db, uid: 'uid-ana', childNames: ['Bia']);

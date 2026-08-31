@@ -10,10 +10,18 @@ import '../application/reward_providers.dart';
 /// mais o histórico de resgates. Enquanto não há "modo criança" (#8), o
 /// responsável opera aqui.
 class CatalogScreen extends ConsumerWidget {
-  const CatalogScreen({super.key, required this.memberId, required this.childName});
+  const CatalogScreen({
+    super.key,
+    required this.memberId,
+    required this.childName,
+    this.childMode = false,
+  });
 
   final String memberId;
   final String childName;
+
+  /// No modo criança some o botão "Entregar".
+  final bool childMode;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -81,7 +89,10 @@ class CatalogScreen extends ConsumerWidget {
                       child: Text('Nenhum resgate ainda.'),
                     )
                   : Column(
-                      children: [for (final r in history) _RedemptionTile(redemption: r)],
+                      children: [
+                        for (final r in history)
+                          _RedemptionTile(redemption: r, childMode: childMode),
+                      ],
                     ),
             ),
           ],
@@ -148,8 +159,9 @@ class _RewardCard extends StatelessWidget {
 }
 
 class _RedemptionTile extends ConsumerWidget {
-  const _RedemptionTile({required this.redemption});
+  const _RedemptionTile({required this.redemption, this.childMode = false});
   final Redemption redemption;
+  final bool childMode;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -161,7 +173,7 @@ class _RedemptionTile extends ConsumerWidget {
       subtitle: Text(
         '${redemption.cost} pts · ${redemption.isDelivered ? 'entregue' : 'aguardando entrega'}',
       ),
-      trailing: redemption.isRequested
+      trailing: (redemption.isRequested && !childMode)
           ? TextButton(
               onPressed: () => ref
                   .read(redemptionControllerProvider.notifier)

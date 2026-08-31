@@ -7,10 +7,18 @@ import '../application/approval_providers.dart';
 /// Tile de uma ocorrência com as ações conforme o estado. Usado na tela de
 /// hoje e na fila de aprovação.
 class InstanceTile extends ConsumerWidget {
-  const InstanceTile({super.key, required this.instance, this.showChildHint});
+  const InstanceTile({
+    super.key,
+    required this.instance,
+    this.showChildHint,
+    this.childMode = false,
+  });
 
   final TaskInstance instance;
   final String? showChildHint;
+
+  /// No modo criança, some com as ações de aprovar/rejeitar.
+  final bool childMode;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -33,21 +41,23 @@ class InstanceTile extends ConsumerWidget {
             onPressed: busy ? null : () => controller.markDone(instance),
             child: const Text('Feita'),
           ),
-        TaskInstanceStatus.awaitingApproval => Wrap(
-            spacing: 4,
-            children: [
-              IconButton(
-                tooltip: 'Rejeitar',
-                icon: const Icon(Icons.close),
-                onPressed: busy ? null : () => _reject(context, controller),
+        TaskInstanceStatus.awaitingApproval => childMode
+            ? const Text('Aguardando')
+            : Wrap(
+                spacing: 4,
+                children: [
+                  IconButton(
+                    tooltip: 'Rejeitar',
+                    icon: const Icon(Icons.close),
+                    onPressed: busy ? null : () => _reject(context, controller),
+                  ),
+                  IconButton.filled(
+                    tooltip: 'Aprovar',
+                    icon: const Icon(Icons.check),
+                    onPressed: busy ? null : () => controller.approve(instance.id),
+                  ),
+                ],
               ),
-              IconButton.filled(
-                tooltip: 'Aprovar',
-                icon: const Icon(Icons.check),
-                onPressed: busy ? null : () => controller.approve(instance.id),
-              ),
-            ],
-          ),
         TaskInstanceStatus.approved => Text(
             '+${instance.pointsAwarded ?? instance.pointsSnapshot}',
             style: theme.textTheme.titleMedium

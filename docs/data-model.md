@@ -29,6 +29,7 @@ Perfil do responsável autenticado. Criado no login (issue #5).
 | `photoUrl` | string? | do Google |
 | `createdAt` | timestamp | server, só na criação |
 | `lastLoginAt` | timestamp | server, todo login |
+| `pinHash` / `pinSalt` | string? | PIN do responsável (issue #8): SHA-256 com salt. Cadeado do "modo criança → modo responsável" |
 
 ### `families/{familyId}`
 

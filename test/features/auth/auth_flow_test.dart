@@ -7,7 +7,7 @@ import '../../support/test_harness.dart';
 
 void main() {
   testWidgets('login pelo botão leva ao onboarding da família', (tester) async {
-    final app = buildTestApp(auth: FakeAuthRepository());
+    final app = await buildTestApp(auth: FakeAuthRepository());
     await pumpSettled(tester, app.widget);
 
     await tester.tap(find.text('Entrar com Google'));
@@ -17,20 +17,23 @@ void main() {
   });
 
   testWidgets('logout volta para a tela de login', (tester) async {
-    final app = buildTestApp(
+    final app = await buildTestApp(
       auth: FakeAuthRepository(initialUser: FakeAuthRepository.user()),
     );
     await seedFamily(app.db, uid: 'uid-ana');
     await pumpSettled(tester, app.widget);
 
-    await tester.tap(find.byTooltip('Sair'));
+    // guardião -> seletor de perfil -> sair da conta
+    await tester.tap(find.byTooltip('Trocar de perfil'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Sair da conta'));
     await tester.pumpAndSettle();
 
     expect(find.text('Entrar com Google'), findsOneWidget);
   });
 
   testWidgets('erro no login mostra snackbar e não navega', (tester) async {
-    final app = buildTestApp(
+    final app = await buildTestApp(
       auth: FakeAuthRepository(
         onSignIn: (_) async => throw const AuthException('Falha no login com o Google.'),
       ),
@@ -46,7 +49,7 @@ void main() {
   });
 
   testWidgets('cancelamento não é tratado como erro', (tester) async {
-    final app = buildTestApp(
+    final app = await buildTestApp(
       auth: FakeAuthRepository(
         onSignIn: (_) async => throw const AuthCancelledException(),
       ),

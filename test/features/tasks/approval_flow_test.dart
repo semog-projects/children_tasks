@@ -48,7 +48,7 @@ Future<Map<String, dynamic>> _instance(FakeFirebaseFirestore db, String familyId
 
 void main() {
   testWidgets('criança marca feita -> aguardando; responsável aprova', (tester) async {
-    final app = buildTestApp(
+    final app = await buildTestApp(
       auth: FakeAuthRepository(initialUser: FakeAuthRepository.user()),
     );
     final familyId = await seedFamily(app.db, uid: 'uid-ana', childNames: ['Bia']);
@@ -77,7 +77,7 @@ void main() {
   });
 
   testWidgets('tarefa sem aprovação vai direto para approved', (tester) async {
-    final app = buildTestApp(
+    final app = await buildTestApp(
       auth: FakeAuthRepository(initialUser: FakeAuthRepository.user()),
     );
     final familyId = await seedFamily(app.db, uid: 'uid-ana', childNames: ['Bia']);
@@ -105,7 +105,7 @@ void main() {
   });
 
   testWidgets('rejeição volta para pendente com o motivo', (tester) async {
-    final app = buildTestApp(
+    final app = await buildTestApp(
       auth: FakeAuthRepository(initialUser: FakeAuthRepository.user()),
     );
     final familyId = await seedFamily(app.db, uid: 'uid-ana', childNames: ['Bia']);
