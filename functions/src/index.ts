@@ -3,22 +3,33 @@
  *
  * - generateDailyInstances: agendada, materializa as tarefas do dia (#10)
  * - generateInstances: callable, para o app forçar a geração ao abrir (#10)
- * - onTaskInstanceWritten: credita pontos no ledger ao aprovar (#11)
+ * - onTaskInstanceWritten: credita pontos + notifica (aprovação) (#11/#14)
  * - redeemReward: callable, resgate transacional de recompensa (#12)
- *
- * Próxima: notificações FCM (#14).
+ * - onRedemptionCreated: notifica o responsável do resgate (#14)
+ * - sendDailyReminders: agendada, lembrete diário de tarefas pendentes (#14)
  */
 
 import { initializeApp } from "firebase-admin/app";
 import { Firestore, getFirestore } from "firebase-admin/firestore";
-import { onDocumentWritten } from "firebase-functions/v2/firestore";
+import { onDocumentCreated, onDocumentWritten } from "firebase-functions/v2/firestore";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { logger } from "firebase-functions/v2";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 
+import { notifyGuardians } from "./notifications/messaging.js";
+import { sendDueReminders } from "./notifications/reminders.js";
 import { redeemReward as redeemRewardTx, RedeemError } from "./rewards/redeem.js";
 import { generateAllFamilies, generateForFamily } from "./tasks/generate.js";
 import { onInstanceStatusChange } from "./tasks/ledger.js";
+
+async function childName(
+  db: Firestore,
+  familyId: string,
+  memberId: string,
+): Promise<string> {
+  const snap = await db.doc(`families/${familyId}/members/${memberId}`).get();
+  return (snap.data()?.displayName as string | undefined) ?? "A criança";
+}
 
 async function assertGuardian(
   db: Firestore,
@@ -83,8 +94,9 @@ export const generateInstances = onCall(
 );
 
 /**
- * Ao aprovar uma ocorrência (`status` -> `approved`), credita os pontos no
- * `ledger` de forma idempotente.
+ * Reage à mudança de estado de uma ocorrência:
+ *  - credita os pontos no `ledger` ao aprovar (idempotente);
+ *  - notifica os responsáveis (pendência de aprovação / resultado).
  */
 export const onTaskInstanceWritten = onDocumentWritten(
   {
@@ -93,13 +105,82 @@ export const onTaskInstanceWritten = onDocumentWritten(
   },
   async (event) => {
     const { familyId, instanceId } = event.params;
-    await onInstanceStatusChange(
-      getFirestore(),
-      familyId,
-      instanceId,
-      event.data?.before.data(),
-      event.data?.after.data(),
-    );
+    const db = getFirestore();
+    const before = event.data?.before.data();
+    const after = event.data?.after.data();
+
+    await onInstanceStatusChange(db, familyId, instanceId, before, after);
+
+    if (!after) return;
+    const title = (after.titleSnapshot as string) ?? "A tarefa";
+
+    // criança marcou feita -> aguardando aprovação
+    if (before?.status !== "awaitingApproval" && after.status === "awaitingApproval") {
+      const name = await childName(db, familyId, after.memberId as string);
+      await notifyGuardians(db, familyId, "pendingApproval", {
+        title: "Tarefa para aprovar",
+        body: `${name} marcou "${title}" como feita.`,
+        data: { type: "pendingApproval", instanceId },
+      });
+      return;
+    }
+
+    // aprovada
+    if (before?.status !== "approved" && after.status === "approved") {
+      const name = await childName(db, familyId, after.memberId as string);
+      await notifyGuardians(db, familyId, "approvalResult", {
+        title: "Tarefa aprovada 🎉",
+        body: `"${title}" de ${name} — +${after.pointsSnapshot ?? 0} pontos.`,
+        data: { type: "approvalResult", instanceId },
+      });
+      return;
+    }
+
+    // rejeitada (volta para pending com um motivo novo)
+    if (
+      after.status === "pending" &&
+      after.rejectionReason &&
+      before?.rejectionReason !== after.rejectionReason
+    ) {
+      const name = await childName(db, familyId, after.memberId as string);
+      await notifyGuardians(db, familyId, "approvalResult", {
+        title: "Tarefa para refazer",
+        body: `"${title}" de ${name}: ${after.rejectionReason}`,
+        data: { type: "approvalResult", instanceId },
+      });
+    }
+  },
+);
+
+/** Notifica o responsável quando uma criança resgata uma recompensa. */
+export const onRedemptionCreated = onDocumentCreated(
+  {
+    document: "families/{familyId}/redemptions/{redemptionId}",
+    region: REGION,
+  },
+  async (event) => {
+    const data = event.data?.data();
+    if (!data) return;
+    const db = getFirestore();
+    const name = await childName(db, event.params.familyId, data.memberId as string);
+    await notifyGuardians(db, event.params.familyId, "redemption", {
+      title: "Recompensa resgatada",
+      body: `${name} resgatou "${data.rewardTitleSnapshot ?? "uma recompensa"}" (${data.cost ?? 0} pts). Hora de entregar!`,
+      data: { type: "redemption", redemptionId: event.params.redemptionId },
+    });
+  },
+);
+
+/**
+ * De hora em hora: para cada responsável, se a hora local da família bate com
+ * o horário do lembrete configurado e há tarefas pendentes hoje, envia o
+ * lembrete (uma vez por dia).
+ */
+export const sendDailyReminders = onSchedule(
+  { schedule: "every 60 minutes", region: REGION, timeZone: "America/Sao_Paulo" },
+  async () => {
+    const sent = await sendDueReminders(getFirestore());
+    logger.info("sendDailyReminders", { sent });
   },
 );
 

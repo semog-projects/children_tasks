@@ -36,6 +36,11 @@ service cloud.firestore {
     // ---- users --------------------------------------------------------
     match /users/{uid} {
       allow read, write: if isSignedIn() && request.auth.uid == uid;
+
+      // Tokens FCM do próprio dispositivo (issue #14).
+      match /fcmTokens/{token} {
+        allow read, write: if isSignedIn() && request.auth.uid == uid;
+      }
     }
 
     // ---- families ----------------------------------------------------

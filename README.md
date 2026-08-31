@@ -40,7 +40,8 @@ O objetivo é ajudar famílias a organizar a rotina das crianças de forma lúdi
 - [x] Painel do responsável (estado do dia por criança, pontos da semana,
       gráfico de pontos/dia), próxima recompensa no modo criança, histórico filtrável
 - [ ] Sincronização em tempo real entre dispositivos da família
-- [ ] Notificações (lembretes de tarefas, tarefa concluída, recompensa resgatada)
+- [x] Notificações FCM: aprovação pendente, resultado, recompensa resgatada,
+      lembrete diário (horário/fuso configuráveis); preferências por tipo
 - [x] Suporte offline: cache do Firestore, faixa de status de sync, resgate
       bloqueado sem rede, pontos nunca somados localmente
 
@@ -148,6 +149,17 @@ O login web usa popup e não precisa de config extra. Para o **nativo**
 ```bash
 flutter run --dart-define=GOOGLE_SERVER_CLIENT_ID=<web-client-id>.apps.googleusercontent.com
 ```
+
+### Notificações (FCM)
+
+- **Android/iOS**: funcionam com a config do `flutterfire configure`.
+- **Web**: precisa da **VAPID key** (console Firebase → Cloud Messaging → Web
+  Push certificates) e do service worker `web/firebase-messaging-sw.js`
+  (versionado com a config de **dev**; troque para prod num build de prod).
+  ```bash
+  flutter run -d chrome --dart-define=FCM_VAPID_KEY=<sua-vapid-key>
+  ```
+  Sem a VAPID key o app roda normal, só sem push no web.
 
 ## Como começar (desenvolvimento)
 

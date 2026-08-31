@@ -30,6 +30,12 @@ Perfil do responsável autenticado. Criado no login (issue #5).
 | `createdAt` | timestamp | server, só na criação |
 | `lastLoginAt` | timestamp | server, todo login |
 | `pinHash` / `pinSalt` | string? | PIN do responsável (issue #8): SHA-256 com salt. Cadeado do "modo criança → modo responsável" |
+| `notif` | map | preferências de notificação (issue #14): `pendingApproval`, `approvalResult`, `redemption`, `dailyReminder` (bool, default true), `reminderHour` (int 0–23, default 18), `lastReminderDate` (`YYYY-MM-DD`, dedup do lembrete) |
+
+Subcoleção `users/{uid}/fcmTokens/{token}` — um doc por dispositivo (id = o
+token FCM), campos `platform` e `updatedAt`. Só o dono lê/escreve; as
+Functions leem via admin. Tokens inválidos são apagados pela Function ao
+falhar o envio.
 
 ### `families/{familyId}`
 
