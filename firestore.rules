@@ -1,0 +1,12 @@
+rules_version = '2';
+
+// Regras mínimas de bootstrap. O modelo de dados real e as regras por
+// coleção (famílias, membros, tarefas, ledger, recompensas) entram na
+// issue #6. Até lá: nega todo acesso direto do cliente.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

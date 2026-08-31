@@ -1,0 +1,7 @@
+{
+  "projects": {
+    "default": "children-tasks-dev",
+    "dev": "children-tasks-dev",
+    "prod": "children-tasks-prod"
+  }
+}

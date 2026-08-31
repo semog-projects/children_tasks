@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../app/env.dart';
+import '../../../app/firebase/firebase_providers.dart';
 import '../application/roadmap_provider.dart';
 
 /// Tela inicial provisória. Serve de _placeholder_ até a navegação real
@@ -12,6 +14,7 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final roadmap = ref.watch(roadmapProvider);
+    final firebaseReady = ref.watch(firebaseReadyProvider);
     final theme = Theme.of(context);
 
     return Scaffold(
@@ -39,6 +42,27 @@ class HomeScreen extends ConsumerWidget {
                 'O scaffold Flutter está pronto. Próximas entregas do backlog:',
                 style: theme.textTheme.bodyMedium,
                 textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              Card(
+                color: firebaseReady
+                    ? theme.colorScheme.secondaryContainer
+                    : theme.colorScheme.errorContainer,
+                child: ListTile(
+                  leading: Icon(
+                    firebaseReady ? Icons.cloud_done_rounded : Icons.cloud_off_rounded,
+                  ),
+                  title: Text(
+                    firebaseReady
+                        ? 'Firebase conectado'
+                        : 'Firebase indisponível',
+                  ),
+                  subtitle: Text(
+                    firebaseReady
+                        ? 'Backend disponível (${AppFlavor.current.name}).'
+                        : 'Backend não inicializado nesta plataforma/ambiente.',
+                  ),
+                ),
               ),
               const SizedBox(height: 24),
               for (final item in roadmap)

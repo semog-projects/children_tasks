@@ -107,6 +107,8 @@ children_tasks/
 │           ├── domain/            #   modelos
 │           └── presentation/      #   telas e widgets
 ├── test/           # espelha a estrutura de lib/
+├── functions/      # Cloud Functions (TypeScript)
+├── firebase.json firestore.rules firestore.indexes.json .firebaserc
 ├── android/ ios/ web/ windows/ macos/ linux/   # gerado pelo flutter create
 └── README.md
 ```
@@ -114,6 +116,17 @@ children_tasks/
 Convenções: `application id` / `bundle id` = `br.com.semogdev.childrentasks`;
 gerência de estado com **Riverpod**; lints extras em `analysis_options.yaml`;
 locale fixo `pt_BR`.
+
+### Flavors
+
+Ambiente selecionado em tempo de compilação por `--dart-define=FLAVOR=dev|prod`
+(padrão `dev`). Em `dev` o app usa o **Emulator Suite** por padrão; force com
+`--dart-define=USE_FIREBASE_EMULATOR=true|false`.
+
+```bash
+flutter run                              # dev + emuladores
+flutter run --dart-define=FLAVOR=prod    # prod
+```
 
 ## Como começar (desenvolvimento)
 
@@ -132,12 +145,49 @@ flutter test
 flutter run
 ```
 
-Configuração do Firebase (issue #4 — ainda não integrado):
+O app roda sem Firebase (estado de bootstrap). Para ligar o backend, faça a
+configuração abaixo.
 
-```bash
-dart pub global activate flutterfire_cli
-flutterfire configure
-```
+## Configuração do Firebase
+
+O SDK e a estrutura já estão integrados (issue #4). Falta provisionar os
+projetos e gerar os arquivos de options. **Uma vez, por quem tem acesso ao
+Google Cloud / Firebase:**
+
+1. Crie dois projetos no [console Firebase](https://console.firebase.google.com):
+   um de **dev** e um de **prod**. Habilite em cada um: Authentication
+   (provedor Google), Cloud Firestore, Cloud Messaging.
+2. Instale as CLIs:
+   ```bash
+   npm i -g firebase-tools
+   dart pub global activate flutterfire_cli
+   firebase login
+   ```
+3. Gere as options de cada flavor (sobrescreve os placeholders versionados):
+   ```bash
+   flutterfire configure --project=<projeto-dev> \
+     --out=lib/src/app/firebase/firebase_options_dev.dart \
+     --platforms=android,ios,web,windows,macos
+
+   flutterfire configure --project=<projeto-prod> \
+     --out=lib/src/app/firebase/firebase_options_prod.dart \
+     --platforms=android,ios,web,windows,macos
+   ```
+4. Aponte os aliases em `.firebaserc` (`dev`/`prod`) para os ids reais.
+5. Cloud Functions:
+   ```bash
+   cd functions && npm install && npm run build
+   ```
+6. Rodar tudo local:
+   ```bash
+   firebase emulators:start           # auth:9099, firestore:8080, functions:5001, UI
+   flutter run                        # já conecta nos emuladores em dev
+   ```
+
+Não são versionados: `google-services.json`, `GoogleService-Info.plist`
+(regeneráveis), service accounts. **São** versionados os
+`firebase_options_*.dart` — não são segredos; a segurança fica nas
+Security Rules (issue #6).
 
 ## Contribuição / fluxo de trabalho
 
