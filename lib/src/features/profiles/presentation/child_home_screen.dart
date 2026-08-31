@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../dashboard/application/dashboard_providers.dart';
 import '../../family/application/family_providers.dart';
 import '../../points/application/points_providers.dart';
 import '../../rewards/presentation/catalog_screen.dart';
@@ -78,6 +79,7 @@ class ChildHomeScreen extends ConsumerWidget {
                       ),
                     ),
                   ),
+                  _NextRewardCard(memberId: memberId),
                   const SizedBox(height: 8),
                   for (final instance in list)
                     InstanceTile(instance: instance, childMode: true),
@@ -90,6 +92,38 @@ class ChildHomeScreen extends ConsumerWidget {
               );
             },
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// "Próxima recompensa alcançável" — motiva a criança a juntar mais pontos.
+class _NextRewardCard extends ConsumerWidget {
+  const _NextRewardCard({required this.memberId});
+  final String memberId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final next = ref.watch(nextRewardProvider(memberId));
+    if (next == null) return const SizedBox.shrink();
+    final balance = ref.watch(childBalanceProvider(memberId)).asData?.value ?? 0;
+    final progress = next.reward.cost == 0 ? 1.0 : balance / next.reward.cost;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Próxima recompensa', style: Theme.of(context).textTheme.labelMedium),
+            const SizedBox(height: 4),
+            Text(next.reward.title, style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 8),
+            LinearProgressIndicator(value: progress.clamp(0.0, 1.0)),
+            const SizedBox(height: 6),
+            Text('Faltam ${next.missing} pontos', style: Theme.of(context).textTheme.bodySmall),
+          ],
         ),
       ),
     );
