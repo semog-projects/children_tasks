@@ -25,11 +25,10 @@ O objetivo é ajudar famílias a organizar a rotina das crianças de forma lúdi
 
 - [x] Autenticação com **Google Sign-In** (responsável) — web via popup;
       Android/iOS via `google_sign_in` (precisa de `GOOGLE_SERVER_CLIENT_ID`)
-- [ ] Família gerenciada no app, membros associados por conta Google
-      (sem sincronizar com o grupo familiar do Google — ver decisão abaixo)
+- [x] Família gerenciada no app (onboarding, nome, fuso, 2º responsável por ID)
+- [x] Cadastro/edição/remoção de crianças (nome, cor, nascimento)
 - [ ] App único com **perfis**: modo responsável (protegido por PIN/senha) e
       modo criança
-- [ ] Cadastro de crianças/membros da família
 - [ ] Criação de tarefas com pontos e categorias
 - [ ] **Tarefas recorrentes** (diárias/semanais) geradas automaticamente por agenda
 - [ ] Marcação de conclusão pela criança + **aprovação obrigatória do responsável**

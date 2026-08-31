@@ -1,28 +1,33 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../app/env.dart';
-import '../../../app/firebase/firebase_providers.dart';
+import '../../../common/avatar_colors.dart';
 import '../../auth/application/auth_providers.dart';
-import '../application/roadmap_provider.dart';
+import '../../family/application/family_providers.dart';
+import '../../family/presentation/family_screen.dart';
 
-/// Tela inicial provisória (usuário já autenticado). Placeholder até a
-/// navegação real (seleção de perfil) existir.
+/// Tela inicial do responsável autenticado, com a família já criada.
+/// Ainda provisória — as tarefas do dia entram nas próximas issues.
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final roadmap = ref.watch(roadmapProvider);
-    final firebaseReady = ref.watch(firebaseReadyProvider);
-    final user = ref.watch(currentUserProvider);
+    final family = ref.watch(currentFamilyProvider).asData?.value;
+    final children = ref.watch(familyChildrenProvider);
     final signingOut = ref.watch(authControllerProvider).isLoading;
-    final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Tarefas das Crianças'),
+        title: Text(family?.name ?? 'Tarefas das Crianças'),
         actions: [
+          IconButton(
+            tooltip: 'Família',
+            icon: const Icon(Icons.group),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const FamilyScreen()),
+            ),
+          ),
           IconButton(
             onPressed: signingOut
                 ? null
@@ -35,73 +40,48 @@ class HomeScreen extends ConsumerWidget {
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 480),
-          child: ListView(
-            padding: const EdgeInsets.all(24),
-            shrinkWrap: true,
-            children: [
-              Icon(
-                Icons.checklist_rounded,
-                size: 64,
-                color: theme.colorScheme.primary,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Projeto em bootstrap',
-                style: theme.textTheme.headlineSmall,
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'O scaffold Flutter está pronto. Próximas entregas do backlog:',
-                style: theme.textTheme.bodyMedium,
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 16),
-              if (user != null)
-                Card(
-                  child: ListTile(
-                    leading: CircleAvatar(
-                      foregroundImage: user.photoURL != null
-                          ? NetworkImage(user.photoURL!)
-                          : null,
-                      onForegroundImageError:
-                          user.photoURL != null ? (_, _) {} : null,
-                      child: const Icon(Icons.person),
+          child: children.when(
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (e, _) => const Center(child: Text('Erro ao carregar a família')),
+            data: (list) => ListView(
+              padding: const EdgeInsets.all(24),
+              children: [
+                if (list.isEmpty)
+                  Card(
+                    child: ListTile(
+                      leading: const Icon(Icons.child_care),
+                      title: const Text('Adicione as crianças da família'),
+                      subtitle: const Text('Toque para abrir a gestão da família.'),
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(builder: (_) => const FamilyScreen()),
+                      ),
                     ),
-                    title: Text(user.displayName ?? 'Responsável'),
-                    subtitle: Text(user.email ?? user.uid),
+                  )
+                else ...[
+                  Text(
+                    'Crianças',
+                    style: Theme.of(context).textTheme.titleMedium,
                   ),
-                ),
-              const SizedBox(height: 16),
-              Card(
-                color: firebaseReady
-                    ? theme.colorScheme.secondaryContainer
-                    : theme.colorScheme.errorContainer,
-                child: ListTile(
-                  leading: Icon(
-                    firebaseReady ? Icons.cloud_done_rounded : Icons.cloud_off_rounded,
-                  ),
-                  title: Text(
-                    firebaseReady
-                        ? 'Firebase conectado'
-                        : 'Firebase indisponível',
-                  ),
-                  subtitle: Text(
-                    firebaseReady
-                        ? 'Backend disponível (${AppFlavor.current.name}).'
-                        : 'Backend não inicializado nesta plataforma/ambiente.',
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-              for (final item in roadmap)
-                Card(
-                  child: ListTile(
-                    leading: CircleAvatar(child: Text('${item.issue}')),
-                    title: Text(item.title),
-                  ),
-                ),
-            ],
+                  const SizedBox(height: 8),
+                  for (final child in list)
+                    Card(
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: colorFromHex(child.avatarColor),
+                          child: Text(
+                            child.displayName.isNotEmpty
+                                ? child.displayName.characters.first.toUpperCase()
+                                : '?',
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                        ),
+                        title: Text(child.displayName),
+                        subtitle: const Text('Tarefas do dia em breve'),
+                      ),
+                    ),
+                ],
+              ],
+            ),
           ),
         ),
       ),

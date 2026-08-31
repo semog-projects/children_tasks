@@ -26,12 +26,13 @@ void main() {
     final repo = FamilyRepository(refs);
     final id = await repo.create(
       const Family(id: '', name: 'Silva', guardianUids: [], timezone: 'America/Sao_Paulo'),
-      creatorUid: 'uid-1',
+      creator: const GuardianRef(uid: 'uid-1', displayName: 'Ana'),
     );
 
     final family = await repo.get(id);
     expect(family!.name, 'Silva');
     expect(family.guardianUids, ['uid-1']);
+    expect(family.guardianFor('uid-1')?.displayName, 'Ana');
 
     final list = await repo.watchForGuardian('uid-1').first;
     expect(list.single.id, id);

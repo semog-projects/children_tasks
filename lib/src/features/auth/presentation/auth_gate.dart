@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/firebase/firebase_providers.dart';
-import '../../home/presentation/home_screen.dart';
+import '../../family/presentation/family_gate.dart';
 import '../application/auth_providers.dart';
 import 'sign_in_screen.dart';
 
@@ -31,7 +31,7 @@ class AuthGate extends ConsumerWidget {
             title: 'Erro de autenticação',
             message: '$error',
           ),
-          data: (user) => user == null ? const SignInScreen() : const HomeScreen(),
+          data: (user) => user == null ? const SignInScreen() : const FamilyGate(),
         );
   }
 }
