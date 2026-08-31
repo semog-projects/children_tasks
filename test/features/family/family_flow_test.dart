@@ -59,6 +59,9 @@ void main() {
     await tester.tap(find.byTooltip('Família'));
     await tester.pumpAndSettle();
 
+    // Rola até o fim (a criança fica acima do FAB, com o padding inferior).
+    await tester.drag(find.byType(ListView), const Offset(0, -800));
+    await tester.pumpAndSettle();
     await tester.tap(find.byType(PopupMenuButton<String>));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Remover'));

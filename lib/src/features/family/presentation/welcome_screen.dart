@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../auth/application/auth_providers.dart';
-import '../application/invite_providers.dart';
-import '../data/invites_repository.dart';
 import 'family_onboarding_screen.dart';
+import 'invite_widgets.dart';
 
 /// Usuário logado que ainda não faz parte de nenhuma família: pode criar a
 /// própria (vira responsável) ou entrar em uma existente por convite.
@@ -68,7 +66,7 @@ class WelcomeScreen extends ConsumerWidget {
                 TextButton.icon(
                   onPressed: () => showDialog<void>(
                     context: context,
-                    builder: (_) => const _InviteCodeDialog(),
+                    builder: (_) => const InviteCodeDialog(),
                   ),
                   icon: const Icon(Icons.key_rounded),
                   label: const Text('Tenho um código de convite'),
@@ -79,98 +77,5 @@ class WelcomeScreen extends ConsumerWidget {
         ),
       ),
     );
-  }
-}
-
-class _InviteCodeDialog extends ConsumerStatefulWidget {
-  const _InviteCodeDialog();
-
-  @override
-  ConsumerState<_InviteCodeDialog> createState() => _InviteCodeDialogState();
-}
-
-class _InviteCodeDialogState extends ConsumerState<_InviteCodeDialog> {
-  final _controller = TextEditingController();
-  String? _error;
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  Future<void> _submit() async {
-    final code = _controller.text.trim();
-    if (code.isEmpty) return;
-    setState(() => _error = null);
-    final ok =
-        await ref.read(acceptInviteControllerProvider.notifier).accept(code);
-    if (!mounted) return;
-    if (ok) {
-      Navigator.of(context).pop();
-      return;
-    }
-    final err = ref.read(acceptInviteControllerProvider).error;
-    setState(() => _error = err is InviteException
-        ? err.message
-        : 'Não foi possível entrar com este código.');
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final busy = ref.watch(acceptInviteControllerProvider).isLoading;
-
-    return AlertDialog(
-      title: const Text('Código de convite'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          TextField(
-            controller: _controller,
-            autofocus: true,
-            enabled: !busy,
-            textCapitalization: TextCapitalization.characters,
-            inputFormatters: [
-              UpperCaseFormatter(),
-              LengthLimitingTextInputFormatter(8),
-            ],
-            decoration: const InputDecoration(
-              labelText: 'Código',
-              hintText: 'ex.: ABCD2345',
-            ),
-            onSubmitted: (_) => busy ? null : _submit(),
-          ),
-          if (_error != null) ...[
-            const SizedBox(height: 8),
-            Text(
-              _error!,
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
-            ),
-          ],
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: busy ? null : () => Navigator.of(context).pop(),
-          child: const Text('Cancelar'),
-        ),
-        FilledButton(
-          onPressed: busy ? null : _submit,
-          child: Text(busy ? 'Entrando…' : 'Entrar'),
-        ),
-      ],
-    );
-  }
-}
-
-/// Deixa o texto sempre em maiúsculas (códigos de convite).
-class UpperCaseFormatter extends TextInputFormatter {
-  @override
-  TextEditingValue formatEditUpdate(
-    TextEditingValue oldValue,
-    TextEditingValue newValue,
-  ) {
-    return newValue.copyWith(text: newValue.text.toUpperCase());
   }
 }

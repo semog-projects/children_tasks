@@ -7,6 +7,12 @@ final invitesRepositoryProvider = Provider<InvitesRepository>((ref) {
   return FirebaseInvitesRepository(ref.watch(functionsProvider));
 });
 
+/// Convites em aberto da família (revalidado com `ref.invalidate`).
+final pendingInvitesProvider =
+    FutureProvider.family<List<PendingInvite>, String>((ref, familyId) {
+  return ref.watch(invitesRepositoryProvider).listInvites(familyId);
+});
+
 /// Aceita um convite pelo código (usado na tela de boas-vindas). `true` no
 /// sucesso; o `RoleGate` reage sozinho à mudança de papel.
 class AcceptInviteController extends AsyncNotifier<void> {

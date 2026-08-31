@@ -34,7 +34,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('ABCD2345'), findsOneWidget);
-    expect(invites.createdInvites.single.familyId, familyId);
+    expect(invites.createdChildInvites.single.familyId, familyId);
   });
 
   testWidgets('criança entra com um código de convite', (tester) async {
@@ -77,6 +77,64 @@ void main() {
 
     expect(invites.acceptedCodes, ['TESTCODE']);
     expect(find.text('Olá, Bia!'), findsOneWidget);
+  });
+
+  testWidgets('responsável gera um código de convite de responsável',
+      (tester) async {
+    final invites = FakeInvitesRepository(
+      invite: FamilyInvite(
+        code: 'GRDN9876',
+        expiresAt: DateTime.now().add(const Duration(days: 7)),
+      ),
+    );
+    final app = await buildTestApp(
+      auth: FakeAuthRepository(initialUser: FakeAuthRepository.user()),
+      invites: invites,
+    );
+    final familyId = await seedFamily(app.db, uid: 'uid-ana');
+    await pumpSettled(tester, app.widget);
+
+    await tester.tap(find.byTooltip('Família'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Convidar responsável'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField), 'papai@example.com');
+    await tester.tap(find.widgetWithText(FilledButton, 'Gerar código'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('GRDN9876'), findsOneWidget);
+    expect(invites.createdGuardianInvites.single.familyId, familyId);
+    expect(invites.createdGuardianInvites.single.email, 'papai@example.com');
+  });
+
+  testWidgets('convite de responsável pendente aparece e pode ser revogado',
+      (tester) async {
+    final invites = FakeInvitesRepository();
+    invites.pending = [
+      PendingInvite(
+        code: 'PEND1234',
+        role: 'guardian',
+        email: 'tio@example.com',
+        expiresAt: DateTime.now().add(const Duration(days: 3)),
+      ),
+    ];
+    final app = await buildTestApp(
+      auth: FakeAuthRepository(initialUser: FakeAuthRepository.user()),
+      invites: invites,
+    );
+    await seedFamily(app.db, uid: 'uid-ana');
+    await pumpSettled(tester, app.widget);
+
+    await tester.tap(find.byTooltip('Família'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Código PEND1234'), findsOneWidget);
+    await tester.tap(find.widgetWithText(TextButton, 'Revogar'));
+    await tester.pumpAndSettle();
+
+    expect(invites.revokedCodes, ['PEND1234']);
+    expect(find.text('Código PEND1234'), findsNothing);
   });
 
   testWidgets('código inválido mostra erro e não sai da tela', (tester) async {

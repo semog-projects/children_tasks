@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../common/avatar_colors.dart';
@@ -9,7 +8,10 @@ import '../../../data/models/member.dart';
 import '../../auth/application/auth_providers.dart';
 import '../../notifications/presentation/notifications_settings_screen.dart';
 import '../application/family_providers.dart';
+import '../application/invite_providers.dart';
+import '../data/invites_repository.dart';
 import 'child_form_screen.dart';
+import 'invite_widgets.dart';
 
 /// Gestão da família: nome, fuso, responsáveis e crianças.
 class FamilyScreen extends ConsumerWidget {
@@ -41,17 +43,29 @@ class FamilyScreen extends ConsumerWidget {
           const _SectionTitle('Responsáveis'),
           for (final uid in family.guardianUids)
             _GuardianTile(family: family, uid: uid),
+          _GuardianInvites(familyId: family.id),
           ListTile(
             leading: const Icon(Icons.person_add_alt),
-            title: const Text('Adicionar responsável'),
-            onTap: () => _showAddGuardianDialog(context, ref),
+            title: const Text('Convidar responsável'),
+            subtitle: const Text('Gera um código para outra conta Google entrar'),
+            onTap: () => _showInviteGuardianDialog(context, ref, family.id),
+          ),
+          ListTile(
+            leading: const Icon(Icons.key_rounded),
+            title: const Text('Entrar em outra família com código'),
+            onTap: () => showDialog<void>(
+              context: context,
+              builder: (_) => const InviteCodeDialog(),
+            ),
           ),
           const Divider(height: 1),
           ListTile(
             leading: const Icon(Icons.notifications_outlined),
             title: const Text('Notificações'),
             onTap: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(builder: (_) => const NotificationsSettingsScreen()),
+              MaterialPageRoute<void>(
+                builder: (_) => const NotificationsSettingsScreen(),
+              ),
             ),
           ),
           const Divider(height: 1),
@@ -61,7 +75,8 @@ class FamilyScreen extends ConsumerWidget {
               padding: EdgeInsets.all(16),
               child: Center(child: CircularProgressIndicator()),
             ),
-            error: (e, _) => const ListTile(title: Text('Erro ao carregar as crianças')),
+            error: (e, _) =>
+                const ListTile(title: Text('Erro ao carregar as crianças')),
             data: (list) => list.isEmpty
                 ? const ListTile(
                     title: Text('Nenhuma criança ainda'),
@@ -78,39 +93,142 @@ class FamilyScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _showAddGuardianDialog(BuildContext context, WidgetRef ref) async {
-    final controller = TextEditingController();
-    final uid = await showDialog<String>(
+  Future<void> _showInviteGuardianDialog(
+    BuildContext context,
+    WidgetRef ref,
+    String familyId,
+  ) async {
+    final emailController = TextEditingController();
+    await showDialog<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Adicionar responsável'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
+      builder: (_) => _InviteGuardianDialog(
+        familyId: familyId,
+        emailController: emailController,
+      ),
+    );
+    ref.invalidate(pendingInvitesProvider(familyId));
+  }
+}
+
+/// Diálogo: e-mail (opcional) -> gera o código e mostra para compartilhar.
+class _InviteGuardianDialog extends ConsumerStatefulWidget {
+  const _InviteGuardianDialog({
+    required this.familyId,
+    required this.emailController,
+  });
+
+  final String familyId;
+  final TextEditingController emailController;
+
+  @override
+  ConsumerState<_InviteGuardianDialog> createState() =>
+      _InviteGuardianDialogState();
+}
+
+class _InviteGuardianDialogState extends ConsumerState<_InviteGuardianDialog> {
+  bool _loading = false;
+  String? _error;
+  FamilyInvite? _invite;
+
+  Future<void> _generate() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final invite =
+          await ref.read(invitesRepositoryProvider).createGuardianInvite(
+                familyId: widget.familyId,
+                email: widget.emailController.text,
+              );
+      if (mounted) setState(() => _invite = invite);
+    } on InviteException catch (e) {
+      if (mounted) setState(() => _error = e.message);
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Convidar responsável'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (_invite == null) ...[
             const Text(
-              'Peça para a outra pessoa entrar no app e copiar o "ID da conta" '
-              'na tela de conta. Cole aqui.',
+              'Opcional: informe o e-mail Google da pessoa. Se informar, só '
+              'essa conta poderá usar o código.',
             ),
             const SizedBox(height: 12),
             TextField(
-              controller: controller,
-              decoration: const InputDecoration(labelText: 'ID da conta'),
-              autofocus: true,
+              controller: widget.emailController,
+              enabled: !_loading,
+              keyboardType: TextInputType.emailAddress,
+              decoration: const InputDecoration(labelText: 'E-mail (opcional)'),
             ),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
-            child: const Text('Adicionar'),
-          ),
+            if (_error != null) ...[
+              const SizedBox(height: 8),
+              Text(_error!,
+                  style: TextStyle(color: Theme.of(context).colorScheme.error)),
+            ],
+          ] else
+            InviteCodeBox(
+              invite: _invite!,
+              hint: 'A outra pessoa entra com o Google e digita este código '
+                  'em "Tenho um código de convite".',
+            ),
         ],
       ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(_invite == null ? 'Cancelar' : 'Fechar'),
+        ),
+        if (_invite == null)
+          FilledButton(
+            onPressed: _loading ? null : _generate,
+            child: Text(_loading ? 'Gerando…' : 'Gerar código'),
+          ),
+      ],
     );
-    if (uid != null && uid.isNotEmpty) {
-      await ref.read(familyControllerProvider.notifier).addGuardianByUid(uid);
-    }
+  }
+}
+
+/// Convites de responsável em aberto, com opção de revogar.
+class _GuardianInvites extends ConsumerWidget {
+  const _GuardianInvites({required this.familyId});
+
+  final String familyId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final invites = ref.watch(pendingInvitesProvider(familyId)).asData?.value ??
+        const <PendingInvite>[];
+    final guardianInvites = invites.where((i) => i.isGuardian).toList();
+    if (guardianInvites.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      children: [
+        for (final invite in guardianInvites)
+          ListTile(
+            leading: const Icon(Icons.hourglass_top),
+            title: Text('Código ${invite.code}'),
+            subtitle: Text(invite.email == null
+                ? 'Convite pendente'
+                : 'Convite para ${invite.email}'),
+            trailing: TextButton(
+              onPressed: () async {
+                await ref.read(invitesRepositoryProvider).revoke(invite.code);
+                ref.invalidate(pendingInvitesProvider(familyId));
+              },
+              child: const Text('Revogar'),
+            ),
+          ),
+      ],
+    );
   }
 }
 
@@ -146,9 +264,12 @@ class _FamilyHeader extends ConsumerWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Nome da família'),
-        content: TextField(controller: controller, autofocus: true, maxLength: 60),
+        content:
+            TextField(controller: controller, autofocus: true, maxLength: 60),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancelar')),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, controller.text.trim()),
             child: const Text('Salvar'),
@@ -209,19 +330,6 @@ class _GuardianTile extends ConsumerWidget {
         child: const Icon(Icons.person),
       ),
       title: Text(name),
-      subtitle: isMe ? Text('ID: $uid', style: const TextStyle(fontSize: 12)) : null,
-      trailing: isMe
-          ? IconButton(
-              tooltip: 'Copiar meu ID',
-              icon: const Icon(Icons.copy),
-              onPressed: () {
-                Clipboard.setData(ClipboardData(text: uid));
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('ID copiado')),
-                );
-              },
-            )
-          : null,
     );
   }
 }
@@ -236,16 +344,20 @@ class _ChildTile extends ConsumerWidget {
       leading: CircleAvatar(
         backgroundColor: colorFromHex(child.avatarColor),
         child: Text(
-          child.displayName.isNotEmpty ? child.displayName.characters.first.toUpperCase() : '?',
+          child.displayName.isNotEmpty
+              ? child.displayName.characters.first.toUpperCase()
+              : '?',
           style: const TextStyle(color: Colors.white),
         ),
       ),
       title: Text(child.displayName),
+      subtitle: child.linkedUid != null ? const Text('Conta vinculada') : null,
       trailing: PopupMenuButton<String>(
         onSelected: (action) async {
           if (action == 'edit') {
             await Navigator.of(context).push(
-              MaterialPageRoute<void>(builder: (_) => ChildFormScreen(child: child)),
+              MaterialPageRoute<void>(
+                  builder: (_) => ChildFormScreen(child: child)),
             );
           } else if (action == 'remove') {
             await _confirmRemove(context, ref);
@@ -268,11 +380,16 @@ class _ChildTile extends ConsumerWidget {
       builder: (ctx) => AlertDialog(
         title: Text('Remover ${child.displayName}?'),
         content: const Text(
-          'A criança sai da família. O histórico de pontos já registrado é mantido.',
+          'A criança sai da família. O histórico de pontos já registrado é '
+          'mantido.',
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Remover')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancelar')),
+          FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Remover')),
         ],
       ),
     );

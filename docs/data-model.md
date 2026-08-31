@@ -46,9 +46,11 @@ falhar o envio.
 
 ### `familyInvites/{code}` (raiz)
 
-Convite para entrar numa família (issue #33). `code` = id do doc (8 chars,
-alfabeto sem ambíguos). **Só as Functions leem/escrevem** — o cliente age
-pelas callables `createFamilyInvite` / `acceptFamilyInvite`.
+Convite para entrar numa família (issues #33/#36). `code` = id do doc (8
+chars, alfabeto sem ambíguos). **Só as Functions leem/escrevem** — o cliente
+age pelas callables `createFamilyInvite` / `acceptFamilyInvite` /
+`listFamilyInvites` / `revokeFamilyInvite`. Índice: `familyId, acceptedByUid`
+(lista os em aberto).
 
 | campo | tipo | notas |
 |---|---|---|
@@ -64,7 +66,9 @@ pelas callables `createFamilyInvite` / `acceptFamilyInvite`.
 `acceptFamilyInvite`: numa transação reserva o convite (validade + uso único);
 fora dela aplica o vínculo — `role: child` → `members/{id}.linkedUid`,
 `family.childUids` (arrayUnion), `users/{uid}` (`role: child`), backfill de
-`memberUid`; `role: guardian` → `family.guardianUids` + `guardians`.
+`memberUid`; `role: guardian` → `family.guardianUids` + `guardians` (o aceite
+exige o e-mail bater, quando o convite fixou um). `revokeFamilyInvite` apaga
+um convite ainda não aceito.
 
 ### `families/{familyId}`
 

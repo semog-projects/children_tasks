@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../common/avatar_colors.dart';
@@ -7,6 +6,7 @@ import '../../../data/models/member.dart';
 import '../application/family_providers.dart';
 import '../application/invite_providers.dart';
 import '../data/invites_repository.dart';
+import 'invite_widgets.dart';
 
 /// Formulário de adicionar/editar uma criança.
 class ChildFormScreen extends ConsumerStatefulWidget {
@@ -239,59 +239,14 @@ class _ChildInviteCardState extends ConsumerState<_ChildInviteCard> {
                 label: Text(_loading ? 'Gerando…' : 'Gerar convite'),
               )
             else
-              _InviteCodeBox(invite: _invite!),
+              InviteCodeBox(
+                invite: _invite!,
+                hint: 'A criança abre o app, entra com o Google e '
+                    'digita este código.',
+              ),
           ],
         ),
       ),
-    );
-  }
-}
-
-class _InviteCodeBox extends StatelessWidget {
-  const _InviteCodeBox({required this.invite});
-
-  final FamilyInvite invite;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final days = invite.expiresAt.difference(DateTime.now()).inDays;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: SelectableText(
-                invite.code,
-                style: theme.textTheme.headlineSmall
-                    ?.copyWith(letterSpacing: 4, fontFamily: 'monospace'),
-              ),
-            ),
-            IconButton(
-              tooltip: 'Copiar',
-              icon: const Icon(Icons.copy),
-              onPressed: () {
-                Clipboard.setData(ClipboardData(text: invite.code));
-                ScaffoldMessenger.of(context)
-                  ..hideCurrentSnackBar()
-                  ..showSnackBar(
-                      const SnackBar(content: Text('Código copiado')));
-              },
-            ),
-          ],
-        ),
-        Text(
-          days > 0 ? 'Válido por $days dias.' : 'Válido por menos de 1 dia.',
-          style: theme.textTheme.bodySmall,
-        ),
-        const SizedBox(height: 4),
-        Text(
-          'A criança abre o app, entra com o Google e digita este código.',
-          style: theme.textTheme.bodySmall,
-        ),
-      ],
     );
   }
 }
