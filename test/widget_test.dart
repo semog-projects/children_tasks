@@ -34,7 +34,7 @@ void main() {
   testWidgets('mostra status do Firebase', (tester) async {
     await tester.pumpWidget(_app());
     await tester.pumpAndSettle();
-    expect(find.text('Firebase não configurado'), findsOneWidget);
+    expect(find.text('Firebase indisponível'), findsOneWidget);
 
     await tester.pumpWidget(_app(firebase: FirebaseInitStatus.ready));
     await tester.pumpAndSettle();

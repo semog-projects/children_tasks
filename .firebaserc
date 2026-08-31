@@ -1,7 +1,7 @@
 {
   "projects": {
-    "default": "TODO-projeto-dev",
-    "dev": "TODO-projeto-dev",
-    "prod": "TODO-projeto-prod"
+    "default": "children-tasks-dev",
+    "dev": "children-tasks-dev",
+    "prod": "children-tasks-prod"
   }
 }

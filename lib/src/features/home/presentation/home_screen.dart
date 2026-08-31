@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../app/env.dart';
 import '../../../app/firebase/firebase_providers.dart';
 import '../application/roadmap_provider.dart';
 
@@ -54,12 +55,12 @@ class HomeScreen extends ConsumerWidget {
                   title: Text(
                     firebaseReady
                         ? 'Firebase conectado'
-                        : 'Firebase não configurado',
+                        : 'Firebase indisponível',
                   ),
                   subtitle: Text(
                     firebaseReady
-                        ? 'Backend disponível.'
-                        : 'Rode `flutterfire configure` (ver README).',
+                        ? 'Backend disponível (${AppFlavor.current.name}).'
+                        : 'Backend não inicializado nesta plataforma/ambiente.',
                   ),
                 ),
               ),

@@ -16,5 +16,38 @@
     "functions": { "port": 5001 },
     "ui": { "enabled": true },
     "singleProjectMode": true
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "children-tasks-dev",
+          "appId": "1:657934624182:android:09fa9b4075be588f8d8d17",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/src/app/firebase/firebase_options_dev.dart": {
+          "projectId": "children-tasks-dev",
+          "configurations": {
+            "android": "1:657934624182:android:09fa9b4075be588f8d8d17",
+            "ios": "1:657934624182:ios:8a9551bd24d76f8a8d8d17",
+            "macos": "1:657934624182:ios:8a9551bd24d76f8a8d8d17",
+            "web": "1:657934624182:web:bc5fe9b2e5b492ed8d8d17",
+            "windows": "1:657934624182:web:c4390335ad864ec28d8d17"
+          }
+        },
+        "lib/src/app/firebase/firebase_options_prod.dart": {
+          "projectId": "children-tasks-prod",
+          "configurations": {
+            "android": "1:1048299264527:android:a2aef20a1a4f7cf0eba17a",
+            "ios": "1:1048299264527:ios:a90a7eee9d7c6aa0eba17a",
+            "macos": "1:1048299264527:ios:a90a7eee9d7c6aa0eba17a",
+            "web": "1:1048299264527:web:33898619a3a1e5e8eba17a",
+            "windows": "1:1048299264527:web:a919fd541d7d4a37eba17a"
+          }
+        }
+      }
+    }
   }
 }
