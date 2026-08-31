@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../common/avatar_colors.dart';
+import '../../dashboard/presentation/dashboard_screen.dart';
 import '../../family/application/family_providers.dart';
 import '../../family/presentation/family_screen.dart';
 import '../../points/application/points_providers.dart';
@@ -37,6 +38,13 @@ class HomeScreen extends ConsumerWidget {
             ),
             onPressed: () => Navigator.of(context).push(
               MaterialPageRoute<void>(builder: (_) => const ApprovalsScreen()),
+            ),
+          ),
+          IconButton(
+            tooltip: 'Painel',
+            icon: const Icon(Icons.insights),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const DashboardScreen()),
             ),
           ),
           IconButton(

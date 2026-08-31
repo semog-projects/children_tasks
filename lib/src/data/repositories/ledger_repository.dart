@@ -19,6 +19,17 @@ class LedgerRepository {
         .map((snap) => snap.docs.map(LedgerEntry.fromDoc).toList());
   }
 
+  /// Todo o ledger da família (mais recente primeiro). Para dashboard/histórico.
+  Stream<List<LedgerEntry>> watchFamily(String familyId, {DateTime? since}) {
+    Query<Map<String, dynamic>> query =
+        _refs.ledger(familyId).orderBy('createdAt', descending: true);
+    if (since != null) {
+      query = query.where('createdAt',
+          isGreaterThanOrEqualTo: Timestamp.fromDate(since));
+    }
+    return query.snapshots().map((snap) => snap.docs.map(LedgerEntry.fromDoc).toList());
+  }
+
   /// Saldo atual de uma criança (soma das entradas).
   Stream<int> watchBalance(String familyId, String memberId) {
     return _refs

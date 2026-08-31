@@ -37,7 +37,8 @@ O objetivo é ajudar famílias a organizar a rotina das crianças de forma lúdi
       no ledger por Cloud Function (idempotente); rejeição volta pra pendente
 - [x] **Pontos e recompensas**: CRUD de recompensas, catálogo por criança,
       resgate transacional (Cloud Function, sem saldo negativo), entrega
-- [ ] Painel de progresso e histórico
+- [x] Painel do responsável (estado do dia por criança, pontos da semana,
+      gráfico de pontos/dia), próxima recompensa no modo criança, histórico filtrável
 - [ ] Sincronização em tempo real entre dispositivos da família
 - [ ] Notificações (lembretes de tarefas, tarefa concluída, recompensa resgatada)
 - [ ] Suporte offline com sincronização posterior
