@@ -6,6 +6,7 @@ import 'repositories/family_repository.dart';
 import 'repositories/ledger_repository.dart';
 import 'repositories/member_repository.dart';
 import 'repositories/reward_repository.dart';
+import 'repositories/task_instance_repository.dart';
 import 'repositories/task_repository.dart';
 
 final firestoreRefsProvider = Provider<FirestoreRefs>((ref) {
@@ -22,6 +23,10 @@ final memberRepositoryProvider = Provider<MemberRepository>((ref) {
 
 final taskRepositoryProvider = Provider<TaskRepository>((ref) {
   return TaskRepository(ref.watch(firestoreRefsProvider));
+});
+
+final taskInstanceRepositoryProvider = Provider<TaskInstanceRepository>((ref) {
+  return TaskInstanceRepository(ref.watch(firestoreRefsProvider));
 });
 
 final rewardRepositoryProvider = Provider<RewardRepository>((ref) {

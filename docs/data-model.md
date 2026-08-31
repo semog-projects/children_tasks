@@ -85,14 +85,22 @@ Modelo/definição da tarefa. As ocorrências ficam em `taskInstances`.
 
 ### `families/{familyId}/taskInstances/{instanceId}`
 
-Uma ocorrência de uma tarefa para uma criança num dia. Criadas por Cloud
-Function (issue #10) ou, para `once`, na criação da tarefa.
+Uma ocorrência de uma tarefa para uma criança num dia. Criadas pela Cloud
+Function `generateDailyInstances` (agendada, de hora em hora) e pela callable
+`generateInstances` (o app chama ao abrir) — issue #10.
+
+**ID determinístico:** `{taskId}__{memberId}__{YYYY-MM-DD}` — garante
+idempotência (rodar a geração de novo não duplica).
+
+**`date`:** a data é o **calendário local da família**, mas gravada como
+`Timestamp` de meia-noite **UTC** desse dia (`YYYY-MM-DDT00:00:00Z`). O app
+exibe só a data, então não há ambiguidade. Ver `functions/src/shared/dates.ts`.
 
 | campo | tipo | notas |
 |---|---|---|
 | `taskId` | string | ref a `tasks` |
 | `memberId` | string | a criança |
-| `date` | timestamp | dia devido, normalizado 00:00 no tz da família |
+| `date` | timestamp | meia-noite UTC do dia local (ver acima) |
 | `status` | string | `pending` \| `awaitingApproval` \| `approved` \| `rejected` |
 | `titleSnapshot` | string | título da tarefa no momento da criação |
 | `pointsSnapshot` | int | pontos no momento da criação |

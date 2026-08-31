@@ -1,4 +1,5 @@
 import 'package:childrentasks/src/data/models/task.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -85,6 +86,34 @@ void main() {
     await tester.tap(find.byTooltip('Ver arquivadas'));
     await tester.pumpAndSettle();
     expect(find.text('Ler 15 min'), findsOneWidget);
+  });
+
+  testWidgets('home mostra o progresso das tarefas de hoje por criança', (tester) async {
+    final app = buildTestApp(
+      auth: FakeAuthRepository(initialUser: FakeAuthRepository.user()),
+    );
+    final familyId = await seedFamily(app.db, uid: 'uid-ana', childNames: ['Bia']);
+    final child = (await app.db
+            .collection('families')
+            .doc(familyId)
+            .collection('members')
+            .get())
+        .docs
+        .single;
+    final now = DateTime.now();
+    final today = Timestamp.fromDate(DateTime.utc(now.year, now.month, now.day));
+    final instances = app.db.collection('families').doc(familyId).collection('taskInstances');
+    await instances.add({
+      'taskId': 't1', 'memberId': child.id, 'date': today, 'status': 'pending',
+      'titleSnapshot': 'Cama', 'pointsSnapshot': 10, 'requiresApproval': true,
+    });
+    await instances.add({
+      'taskId': 't2', 'memberId': child.id, 'date': today, 'status': 'approved',
+      'titleSnapshot': 'Ler', 'pointsSnapshot': 5, 'requiresApproval': true,
+    });
+    await pumpSettled(tester, app.widget);
+
+    expect(find.text('1 de 2 tarefas hoje'), findsOneWidget);
   });
 
   test('Recurrence.summary resume a repetição', () {
