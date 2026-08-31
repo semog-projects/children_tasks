@@ -17,7 +17,6 @@ linter:
   rules:
     - always_declare_return_types
     - avoid_dynamic_calls
-    - avoid_redundant_argument_values
     - directives_ordering
     - prefer_const_constructors
     - prefer_const_declarations

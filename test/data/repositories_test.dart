@@ -74,7 +74,7 @@ void main() {
 
     expect((await repo.watchActive('f1').first).single.title, 'Arrumar a cama');
 
-    await repo.archive('f1', id);
+    await repo.setActive('f1', id, active: false);
     expect(await repo.watchActive('f1').first, isEmpty);
 
     final archived = await repo.get('f1', id);

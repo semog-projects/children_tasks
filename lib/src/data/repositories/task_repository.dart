@@ -8,12 +8,17 @@ class TaskRepository {
 
   final FirestoreRefs _refs;
 
-  Stream<List<Task>> watchActive(String familyId) {
+  Stream<List<Task>> watchActive(String familyId) => _watch(familyId, active: true);
+
+  Stream<List<Task>> watchArchived(String familyId) => _watch(familyId, active: false);
+
+  Stream<List<Task>> _watch(String familyId, {required bool active}) {
     return _refs
         .tasks(familyId)
-        .where('active', isEqualTo: true)
+        .where('active', isEqualTo: active)
         .snapshots()
-        .map((snap) => snap.docs.map(Task.fromDoc).toList());
+        .map((snap) => (snap.docs.map(Task.fromDoc).toList())
+          ..sort((a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase())));
   }
 
   Future<Task?> get(String familyId, String taskId) async {
@@ -37,10 +42,10 @@ class TaskRepository {
     });
   }
 
-  /// Arquiva (não apaga — o histórico de ocorrências continua válido).
-  Future<void> archive(String familyId, String taskId) {
+  /// Arquiva/reativa. Arquivar não apaga — o histórico de ocorrências fica.
+  Future<void> setActive(String familyId, String taskId, {required bool active}) {
     return _refs.tasks(familyId).doc(taskId).update({
-      'active': false,
+      'active': active,
       'updatedAt': FieldValue.serverTimestamp(),
     });
   }
