@@ -3,16 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../common/sync/sync_banner.dart';
 import '../../auth/application/auth_providers.dart';
-import '../../dashboard/application/dashboard_providers.dart';
-import '../../family/application/family_providers.dart';
-import '../../points/application/points_providers.dart';
 import '../../rewards/presentation/catalog_screen.dart';
-import '../../tasks/application/task_instances_providers.dart';
 import '../../tasks/presentation/instance_tile.dart';
+import '../application/child_providers.dart';
+import 'child_notifications_screen.dart';
 
 /// Visão simplificada de uma criança logada com a própria conta: só as tarefas
-/// de hoje dela e o catálogo de recompensas. Sem acesso a configurações nem a
-/// outras crianças.
+/// de hoje dela e o catálogo de recompensas. Sem acesso a configurações da
+/// família nem a outras crianças.
 class ChildHomeScreen extends ConsumerWidget {
   const ChildHomeScreen({super.key, required this.memberId});
 
@@ -20,11 +18,10 @@ class ChildHomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final children = ref.watch(familyChildrenProvider).asData?.value ?? const [];
-    final me = children.where((c) => c.id == memberId).firstOrNull;
+    final me = ref.watch(currentChildMemberProvider);
     final name = me?.displayName ?? 'Criança';
-    final balance = ref.watch(childBalanceProvider(memberId)).asData?.value ?? 0;
-    final instances = ref.watch(childTodayInstancesProvider(memberId));
+    final balance = ref.watch(myChildBalanceProvider).asData?.value ?? 0;
+    final instances = ref.watch(myChildInstancesProvider);
     final signingOut = ref.watch(authControllerProvider).isLoading;
     final theme = Theme.of(context);
 
@@ -42,6 +39,15 @@ class ChildHomeScreen extends ConsumerWidget {
                   childName: name,
                   childMode: true,
                 ),
+              ),
+            ),
+          ),
+          IconButton(
+            tooltip: 'Notificações',
+            icon: const Icon(Icons.notifications_outlined),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => const ChildNotificationsScreen(),
               ),
             ),
           ),
@@ -81,7 +87,7 @@ class ChildHomeScreen extends ConsumerWidget {
                           ),
                         ),
                       ),
-                      _NextRewardCard(memberId: memberId),
+                      const _NextRewardCard(),
                       const SizedBox(height: 8),
                       for (final instance in list)
                         InstanceTile(instance: instance, childMode: true),
@@ -105,14 +111,13 @@ class ChildHomeScreen extends ConsumerWidget {
 
 /// "Próxima recompensa alcançável" — motiva a criança a juntar mais pontos.
 class _NextRewardCard extends ConsumerWidget {
-  const _NextRewardCard({required this.memberId});
-  final String memberId;
+  const _NextRewardCard();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final next = ref.watch(nextRewardProvider(memberId));
+    final next = ref.watch(myNextRewardProvider);
     if (next == null) return const SizedBox.shrink();
-    final balance = ref.watch(childBalanceProvider(memberId)).asData?.value ?? 0;
+    final balance = ref.watch(myChildBalanceProvider).asData?.value ?? 0;
     final progress = next.reward.cost == 0 ? 1.0 : balance / next.reward.cost;
 
     return Card(

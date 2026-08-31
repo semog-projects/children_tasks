@@ -6,7 +6,11 @@ import { after, before, beforeEach, test } from "node:test";
 import { initializeApp } from "firebase-admin/app";
 import { FieldValue, getFirestore } from "firebase-admin/firestore";
 
-import { redeemReward, RedeemError } from "../lib/rewards/redeem.js";
+import {
+  redeemReward,
+  RedeemError,
+  resolveRedeemTarget,
+} from "../lib/rewards/redeem.js";
 
 process.env.GCLOUD_PROJECT ??= "demo-children-tasks";
 
@@ -20,10 +24,20 @@ before(() => {
 after(async () => db.terminate());
 
 async function wipe() {
-  for (const sub of ["rewards", "ledger", "redemptions"]) {
+  for (const sub of ["rewards", "ledger", "redemptions", "members"]) {
     const docs = await db.collection(`families/${FAMILY}/${sub}`).get();
     await Promise.all(docs.docs.map((d) => d.ref.delete()));
   }
+  await db.doc(`families/${FAMILY}`).set({
+    name: "Silva",
+    guardianUids: ["g1"],
+    childUids: ["uid-bia"],
+  });
+  await db.doc(`families/${FAMILY}/members/m1`).set({
+    type: "child",
+    displayName: "Bia",
+    linkedUid: "uid-bia",
+  });
 }
 
 async function seedBalance(memberId, points) {
@@ -123,4 +137,54 @@ test("dois resgates seguidos: o segundo respeita o saldo já debitado", async ()
   await redeemReward(db, params(rewardId)); // saldo 10
   await assert.rejects(() => redeemReward(db, params(rewardId)), RedeemError);
   assert.equal(await balance("m1"), 10);
+});
+
+test("grava memberUid no resgate e no débito quando passado", async () => {
+  await seedBalance("m1", 100);
+  const rewardId = await seedReward();
+  await redeemReward(db, { ...params(rewardId), memberUid: "uid-bia" });
+
+  const redemption = (
+    await db.collection(`families/${FAMILY}/redemptions`).get()
+  ).docs[0].data();
+  assert.equal(redemption.memberUid, "uid-bia");
+  const debit = (
+    await db
+      .collection(`families/${FAMILY}/ledger`)
+      .where("type", "==", "redeem")
+      .get()
+  ).docs[0].data();
+  assert.equal(debit.memberUid, "uid-bia");
+});
+
+test("resolveRedeemTarget: responsável resgata para qualquer criança", async () => {
+  const target = await resolveRedeemTarget(db, FAMILY, "g1", "m1");
+  assert.deepEqual(target, { memberId: "m1", memberUid: "uid-bia" });
+});
+
+test("resolveRedeemTarget: criança resgata só para si (ignora memberId pedido)", async () => {
+  await db.doc(`families/${FAMILY}/members/m2`).set({
+    type: "child",
+    displayName: "Léo",
+  });
+  const target = await resolveRedeemTarget(db, FAMILY, "uid-bia", "m2");
+  assert.deepEqual(target, { memberId: "m1", memberUid: "uid-bia" });
+});
+
+test("resolveRedeemTarget: quem não é da família é barrado", async () => {
+  await assert.rejects(
+    () => resolveRedeemTarget(db, FAMILY, "estranho", "m1"),
+    (e) => e instanceof RedeemError && e.code === "permission-denied",
+  );
+});
+
+test("resolveRedeemTarget: uid em childUids mas sem member vinculado é barrado", async () => {
+  await db.doc(`families/${FAMILY}`).set(
+    { childUids: ["uid-bia", "uid-orfao"] },
+    { merge: true },
+  );
+  await assert.rejects(
+    () => resolveRedeemTarget(db, FAMILY, "uid-orfao", undefined),
+    (e) => e instanceof RedeemError && e.code === "permission-denied",
+  );
 });

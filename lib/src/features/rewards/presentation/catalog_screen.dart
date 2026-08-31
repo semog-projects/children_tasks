@@ -4,12 +4,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../common/sync/sync_providers.dart';
 import '../../../data/models/redemption.dart';
 import '../../../data/models/reward.dart';
+import '../../child/application/child_providers.dart';
 import '../../points/application/points_providers.dart';
 import '../application/reward_providers.dart';
 
 /// Catálogo de recompensas de uma criança: o que dá pra resgatar com o saldo,
-/// mais o histórico de resgates. Enquanto não há "modo criança" (#8), o
-/// responsável opera aqui.
+/// mais o histórico de resgates. Aberto pelo responsável (`childMode: false`)
+/// ou pela própria criança logada (`childMode: true`).
 class CatalogScreen extends ConsumerWidget {
   const CatalogScreen({
     super.key,
@@ -40,9 +41,16 @@ class CatalogScreen extends ConsumerWidget {
       }
     });
 
-    final balance = ref.watch(childBalanceProvider(memberId)).asData?.value ?? 0;
+    final balance = (childMode
+            ? ref.watch(myChildBalanceProvider)
+            : ref.watch(childBalanceProvider(memberId)))
+        .asData
+        ?.value ??
+        0;
     final rewards = ref.watch(activeRewardsProvider);
-    final redemptions = ref.watch(childRedemptionsProvider(memberId));
+    final redemptions = childMode
+        ? ref.watch(myChildRedemptionsProvider)
+        : ref.watch(childRedemptionsProvider(memberId));
     final busy = ref.watch(redemptionControllerProvider).isLoading;
     final online = ref.watch(isOnlineProvider);
     final theme = Theme.of(context);

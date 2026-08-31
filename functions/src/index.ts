@@ -3,9 +3,10 @@
  *
  * - generateDailyInstances: agendada, materializa as tarefas do dia (#10)
  * - generateInstances: callable, para o app forçar a geração ao abrir (#10)
- * - onTaskInstanceWritten: credita pontos + notifica (aprovação) (#11/#14)
- * - redeemReward: callable, resgate transacional de recompensa (#12)
- * - onRedemptionCreated: notifica o responsável do resgate (#14)
+ * - onTaskInstanceWritten: credita pontos + notifica responsável e criança
+ *   (aprovação / rejeição) (#11/#14/#35)
+ * - redeemReward: callable, resgate transacional (responsável ou criança) (#12/#35)
+ * - onRedemptionWritten: notifica responsável (resgatado) / criança (entregue)
  * - sendDailyReminders: agendada, lembrete diário de tarefas pendentes (#14)
  * - createFamilyInvite/acceptFamilyInvite: callable, convite e vínculo de
  *   criança / responsável à família (#33)
@@ -13,7 +14,7 @@
 
 import { initializeApp } from "firebase-admin/app";
 import { Firestore, getFirestore } from "firebase-admin/firestore";
-import { onDocumentCreated, onDocumentWritten } from "firebase-functions/v2/firestore";
+import { onDocumentWritten } from "firebase-functions/v2/firestore";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { logger } from "firebase-functions/v2";
 import { onSchedule } from "firebase-functions/v2/scheduler";
@@ -23,9 +24,13 @@ import {
   createInvite,
   InviteError,
 } from "./family/invites.js";
-import { notifyGuardians } from "./notifications/messaging.js";
+import { notifyGuardians, notifyMember } from "./notifications/messaging.js";
 import { sendDueReminders } from "./notifications/reminders.js";
-import { redeemReward as redeemRewardTx, RedeemError } from "./rewards/redeem.js";
+import {
+  redeemReward as redeemRewardTx,
+  RedeemError,
+  resolveRedeemTarget,
+} from "./rewards/redeem.js";
 import { generateAllFamilies, generateForFamily } from "./tasks/generate.js";
 import { onInstanceStatusChange } from "./tasks/ledger.js";
 
@@ -134,11 +139,18 @@ export const onTaskInstanceWritten = onDocumentWritten(
 
     // aprovada
     if (before?.status !== "approved" && after.status === "approved") {
-      const name = await childName(db, familyId, after.memberId as string);
+      const memberId = after.memberId as string;
+      const name = await childName(db, familyId, memberId);
+      const points = after.pointsSnapshot ?? 0;
       await notifyGuardians(db, familyId, "approvalResult", {
         title: "Tarefa aprovada 🎉",
-        body: `"${title}" de ${name} — +${after.pointsSnapshot ?? 0} pontos.`,
+        body: `"${title}" de ${name} — +${points} pontos.`,
         data: { type: "approvalResult", instanceId },
+      });
+      await notifyMember(db, familyId, memberId, "taskApproved", {
+        title: "Tarefa aprovada 🎉",
+        body: `"${title}" — +${points} pontos!`,
+        data: { type: "taskApproved", instanceId },
       });
       return;
     }
@@ -149,32 +161,59 @@ export const onTaskInstanceWritten = onDocumentWritten(
       after.rejectionReason &&
       before?.rejectionReason !== after.rejectionReason
     ) {
-      const name = await childName(db, familyId, after.memberId as string);
+      const memberId = after.memberId as string;
+      const name = await childName(db, familyId, memberId);
       await notifyGuardians(db, familyId, "approvalResult", {
         title: "Tarefa para refazer",
         body: `"${title}" de ${name}: ${after.rejectionReason}`,
         data: { type: "approvalResult", instanceId },
+      });
+      await notifyMember(db, familyId, memberId, "taskRejected", {
+        title: "Tarefa para refazer",
+        body: `"${title}": ${after.rejectionReason}`,
+        data: { type: "taskRejected", instanceId },
       });
     }
   },
 );
 
 /** Notifica o responsável quando uma criança resgata uma recompensa. */
-export const onRedemptionCreated = onDocumentCreated(
+/**
+ * Resgate criado -> notifica os responsáveis ("hora de entregar").
+ * Resgate marcado como `delivered` -> notifica a criança ("recompensa
+ * entregue"). (#14/#35)
+ */
+export const onRedemptionWritten = onDocumentWritten(
   {
     document: "families/{familyId}/redemptions/{redemptionId}",
     region: REGION,
   },
   async (event) => {
-    const data = event.data?.data();
-    if (!data) return;
+    const { familyId, redemptionId } = event.params;
+    const before = event.data?.before.data();
+    const after = event.data?.after.data();
+    if (!after) return;
     const db = getFirestore();
-    const name = await childName(db, event.params.familyId, data.memberId as string);
-    await notifyGuardians(db, event.params.familyId, "redemption", {
-      title: "Recompensa resgatada",
-      body: `${name} resgatou "${data.rewardTitleSnapshot ?? "uma recompensa"}" (${data.cost ?? 0} pts). Hora de entregar!`,
-      data: { type: "redemption", redemptionId: event.params.redemptionId },
-    });
+    const memberId = after.memberId as string;
+    const rewardTitle = (after.rewardTitleSnapshot as string) ?? "uma recompensa";
+
+    if (!before) {
+      const name = await childName(db, familyId, memberId);
+      await notifyGuardians(db, familyId, "redemption", {
+        title: "Recompensa resgatada",
+        body: `${name} resgatou "${rewardTitle}" (${after.cost ?? 0} pts). Hora de entregar!`,
+        data: { type: "redemption", redemptionId },
+      });
+      return;
+    }
+
+    if (before.status !== "delivered" && after.status === "delivered") {
+      await notifyMember(db, familyId, memberId, "rewardDelivered", {
+        title: "Recompensa entregue 🎉",
+        body: `"${rewardTitle}" já é sua!`,
+        data: { type: "rewardDelivered", redemptionId },
+      });
+    }
   },
 );
 
@@ -254,7 +293,8 @@ export const acceptFamilyInvite = onCall({ region: REGION }, async (request) => 
 
 /**
  * Resgate de recompensa: débito transacional de pontos (sem saldo negativo)
- * + registro de resgate. Só o responsável da família pode chamar.
+ * + registro de resgate. Pode ser chamado pelo responsável (para qualquer
+ * criança) ou pela própria criança logada (só para si — issue #35).
  */
 export const redeemReward = onCall({ region: REGION }, async (request) => {
   const uid = request.auth?.uid;
@@ -262,16 +302,25 @@ export const redeemReward = onCall({ region: REGION }, async (request) => {
 
   const familyId = request.data?.familyId as string | undefined;
   const rewardId = request.data?.rewardId as string | undefined;
-  const memberId = request.data?.memberId as string | undefined;
-  if (!familyId || !rewardId || !memberId) {
-    throw new HttpsError("invalid-argument", "familyId, rewardId e memberId são obrigatórios.");
+  if (!familyId || !rewardId) {
+    throw new HttpsError("invalid-argument", "familyId e rewardId são obrigatórios.");
   }
 
   const db = getFirestore();
-  await assertGuardian(db, familyId, uid);
-
   try {
-    return await redeemRewardTx(db, { familyId, rewardId, memberId, requestedByUid: uid });
+    const target = await resolveRedeemTarget(
+      db,
+      familyId,
+      uid,
+      request.data?.memberId as string | undefined,
+    );
+    return await redeemRewardTx(db, {
+      familyId,
+      rewardId,
+      memberId: target.memberId,
+      memberUid: target.memberUid,
+      requestedByUid: uid,
+    });
   } catch (error) {
     if (error instanceof RedeemError) {
       throw new HttpsError(error.code, error.message);

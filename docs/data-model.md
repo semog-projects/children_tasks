@@ -14,9 +14,10 @@ Definido na issue #6. Base para tarefas, aprovação, pontos e recompensas.
 >   + `childUids`), Functions gravam `memberUid` em `taskInstances`/`ledger`.
 > - **#34 (feito):** rules com o papel "criança"; trava de auto-aprovação no
 >   servidor (ver "Regras de segurança").
-> - **#35:** ações da criança (marcar tarefa, pedir resgate) e notificações —
->   o cliente ainda precisa religar as leituras da criança a queries por
->   `memberUid`.
+> - **#35 (feito):** ações da criança — marca a própria tarefa, pede resgate
+>   (callable `redeemReward` aceita a criança), leituras por `memberUid`
+>   (`myChild*` providers + índices), notificações de tarefa aprovada/recusada
+>   e recompensa entregue + tela de preferências enxuta.
 
 ## Coleções
 
@@ -36,7 +37,7 @@ aceitar o convite, issue #33).
 | `createdAt` | timestamp | server, só na criação |
 | `lastLoginAt` | timestamp | server, todo login |
 | `pinHash` / `pinSalt` | string? | Reservado para um app-lock opcional. Era o cadeado do "modo criança → modo responsável" (issue #8), removido na #32 junto com o modo criança local |
-| `notif` | map | preferências de notificação (issue #14): `pendingApproval`, `approvalResult`, `redemption`, `dailyReminder` (bool, default true), `reminderHour` (int 0–23, default 18), `lastReminderDate` (`YYYY-MM-DD`, dedup do lembrete) |
+| `notif` | map | preferências de notificação (bool, default true). Responsável (#14): `pendingApproval`, `approvalResult`, `redemption`, `dailyReminder` + `reminderHour` (int 0–23, default 18), `lastReminderDate` (`YYYY-MM-DD`, dedup). Criança (#35): `taskApproved`, `taskRejected`, `rewardDelivered` |
 
 Subcoleção `users/{uid}/fcmTokens/{token}` — um doc por dispositivo (id = o
 token FCM), campos `platform` e `updatedAt`. Só o dono lê/escreve; as
@@ -176,16 +177,18 @@ aprovação.
 ### `families/{familyId}/redemptions/{redemptionId}`
 
 Um resgate de recompensa. Criado **só pela Function `redeemReward`** (débito
-transacional). O responsável marca como `delivered`.
+transacional) — chamada pelo responsável ou pela própria criança (#35). O
+responsável marca como `delivered`.
 
 | campo | tipo | notas |
 |---|---|---|
 | `rewardId` | string | ref a `rewards` |
 | `memberId` | string | a criança |
+| `memberUid` | string? | `linkedUid` da criança (quando tem login); rules/queries da criança |
 | `rewardTitleSnapshot` | string | título no momento do resgate |
 | `cost` | int | pontos debitados |
 | `status` | string | `requested` \| `delivered` \| `canceled` |
-| `requestedByUid` | string | responsável |
+| `requestedByUid` | string | quem disparou (responsável ou a própria criança) |
 | `requestedAt` / `deliveredAt` | timestamp | server |
 | `deliveredByUid` | string? | quem entregou |
 
@@ -197,7 +200,7 @@ saldo de uma criança é a soma de `points` das entradas dela.
 | campo | tipo | notas |
 |---|---|---|
 | `memberId` | string | a criança |
-| `memberUid` | string? | `linkedUid` da criança (quando tem login). Gravado pelas Functions em `earn` + backfill de todas as entradas no vínculo (#33; `redeem` passa a gravar na #35); usado pelas rules da criança (#34) |
+| `memberUid` | string? | `linkedUid` da criança (quando tem login). Gravado pelas Functions em `earn` (#33) e `redeem` (#35) + backfill de todas as entradas no vínculo; usado pelas rules e queries da criança (#34/#35) |
 | `type` | string | `earn` \| `redeem` \| `adjustment` |
 | `points` | int | com sinal: `earn` > 0, `redeem` < 0, `adjustment` qualquer ≠ 0 |
 | `sourceType` | string | `taskInstance` \| `reward` \| `manual` |
@@ -218,10 +221,12 @@ As rules deixam o cliente criar **só `adjustment`/`manual`**; `earn` e
 
 Ver `firestore.indexes.json`:
 
-- `taskInstances`: `memberId ASC, date ASC` — tarefas do dia de uma criança
+- `taskInstances`: `memberId ASC, date ASC` — tarefas do dia (visão do responsável)
+- `taskInstances`: `memberUid ASC, date ASC` — tarefas do dia da própria criança (#35)
 - `taskInstances`: `status ASC, date ASC` — fila de aprovação do responsável
 - `taskInstances`: `taskId ASC, date ASC` — idempotência da geração de recorrentes
-- `ledger`: `memberId ASC, createdAt DESC` — extrato / cálculo de saldo
+- `ledger`: `memberId ASC, createdAt DESC` — extrato / saldo (visão do responsável)
+- `ledger`: `memberUid ASC, createdAt DESC` — extrato / saldo da própria criança (#35)
 - `tasks`: `active ASC, category ASC` — listagem filtrada
 
 ## Regras de segurança
@@ -236,8 +241,11 @@ Ver `firestore.indexes.json`:
     `resource.data.memberUid == uid` (a query precisa filtrar por `memberUid`).
   - `update` só da própria `taskInstance`: `pending → awaitingApproval`, ou
     `→ approved` quando `requiresApproval == false`; mexe só em
-    `status`/`completedAt`/`updatedAt`. **Não** grava `pointsAwarded`,
-    `reviewedByUid`, `memberUid`, nem se autoaprova (trava no servidor).
+    `status`/`completedAt`/`rejectionReason`/`updatedAt`. **Não** grava
+    `pointsAwarded`, `reviewedByUid`, `memberUid`, nem se autoaprova (trava
+    no servidor).
+  - resgate: a criança dispara `redeemReward` só para si (a callable resolve
+    o `member` pelo `linkedUid`).
   - sem escrita em `members`/`tasks`/`rewards`/`family`/`ledger`.
 - `pointsAwarded` e `memberUid` em `taskInstances` são imutáveis pelo cliente
   (só as Functions).

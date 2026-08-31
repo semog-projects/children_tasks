@@ -129,7 +129,8 @@ service cloud.firestore {
         // (só não pula para `approved` sem passar por `awaitingApproval`
         // quando a tarefa exige aprovação). A criança só marca a PRÓPRIA
         // tarefa: `pending -> awaitingApproval` (ou `-> approved` quando não
-        // exige aprovação), mexendo apenas em status/completedAt/updatedAt.
+        // exige aprovação), mexendo apenas em
+        // status/completedAt/rejectionReason/updatedAt.
         allow update: if
           request.resource.data.taskId == resource.data.taskId
           && request.resource.data.memberId == resource.data.memberId
@@ -153,7 +154,7 @@ service cloud.firestore {
               && ownsChildDoc(resource.data)
               && resource.data.status == 'pending'
               && request.resource.data.diff(resource.data).affectedKeys()
-                 .hasOnly(['status', 'completedAt', 'updatedAt'])
+                 .hasOnly(['status', 'completedAt', 'rejectionReason', 'updatedAt'])
               && (
                 request.resource.data.status == 'awaitingApproval'
                 || (
