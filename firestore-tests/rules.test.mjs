@@ -143,6 +143,12 @@ test('tarefa: pontos <= 0 e categoria inválida são rejeitados', async () => {
   await assertFails(addDoc(tasks, { ...validTask, category: 'inventada' }));
 });
 
+test('tarefa: description null é aceito; string longa demais não', async () => {
+  const tasks = collection(guardianDb(), `families/${FAMILY}/tasks`);
+  await assertSucceeds(addDoc(tasks, { ...validTask, description: null }));
+  await assertFails(addDoc(tasks, { ...validTask, description: 'x'.repeat(501) }));
+});
+
 test('ledger: responsável cria, mas não atualiza nem deleta', async () => {
   const ledger = collection(guardianDb(), `families/${FAMILY}/ledger`);
   const ref = await assertSucceeds(addDoc(ledger, validLedger));

@@ -29,7 +29,8 @@ O objetivo é ajudar famílias a organizar a rotina das crianças de forma lúdi
 - [x] Cadastro/edição/remoção de crianças (nome, cor, nascimento)
 - [ ] App único com **perfis**: modo responsável (protegido por PIN/senha) e
       modo criança
-- [ ] Criação de tarefas com pontos e categorias
+- [x] Criação/edição/arquivamento de tarefas (pontos, categoria, atribuição,
+      repetição, aprovação) com filtros por criança/categoria
 - [ ] **Tarefas recorrentes** (diárias/semanais) geradas automaticamente por agenda
 - [ ] Marcação de conclusão pela criança + **aprovação obrigatória do responsável**
       antes de creditar os pontos

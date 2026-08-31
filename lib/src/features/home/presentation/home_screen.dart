@@ -5,6 +5,7 @@ import '../../../common/avatar_colors.dart';
 import '../../auth/application/auth_providers.dart';
 import '../../family/application/family_providers.dart';
 import '../../family/presentation/family_screen.dart';
+import '../../tasks/presentation/tasks_screen.dart';
 
 /// Tela inicial do responsável autenticado, com a família já criada.
 /// Ainda provisória — as tarefas do dia entram nas próximas issues.
@@ -21,6 +22,13 @@ class HomeScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text(family?.name ?? 'Tarefas das Crianças'),
         actions: [
+          IconButton(
+            tooltip: 'Tarefas',
+            icon: const Icon(Icons.checklist_rounded),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const TasksScreen()),
+            ),
+          ),
           IconButton(
             tooltip: 'Família',
             icon: const Icon(Icons.group),
