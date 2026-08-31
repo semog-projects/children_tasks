@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../data/models/task.dart';
 import '../../family/application/family_providers.dart';
+import '../application/task_instances_providers.dart';
 import '../application/task_providers.dart';
 
 /// Formulário de criar/editar uma tarefa.
@@ -105,6 +108,9 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
 
     await ref.read(taskControllerProvider.notifier).save(task);
     if (!ref.read(taskControllerProvider).hasError && mounted) {
+      // Materializa já a ocorrência de hoje se a recorrência bater — senão a
+      // tarefa só apareceria em "Tarefas de hoje" na próxima rodada agendada.
+      unawaited(requestTodayInstances(ref));
       Navigator.of(context).pop();
     }
   }

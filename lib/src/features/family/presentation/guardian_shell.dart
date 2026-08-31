@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../common/centered_message.dart';
+import '../../../data/models/family.dart';
 import '../../home/presentation/home_screen.dart';
 import '../../notifications/application/notifications_service.dart';
 import '../../tasks/application/task_instances_providers.dart';
@@ -21,16 +22,28 @@ class _GuardianShellState extends ConsumerState<GuardianShell> {
   bool _started = false;
 
   @override
-  Widget build(BuildContext context) {
-    ref.listen(currentFamilyProvider, (_, next) {
-      if (!_started && next.asData?.value != null) {
-        _started = true;
-        ref.read(familyControllerProvider.notifier).healOwnProfile();
-        requestTodayInstances(ref);
-        ref.read(notificationsServiceProvider).start();
-      }
-    });
+  void initState() {
+    super.initState();
+    // `fireImmediately` cobre o caso normal: quando este shell monta, o
+    // `RoleGate` já resolveu a família, então um `ref.listen` sem isso nunca
+    // dispararia.
+    ref.listenManual<AsyncValue<Family?>>(
+      currentFamilyProvider,
+      (_, next) => _maybeStart(next.asData?.value),
+      fireImmediately: true,
+    );
+  }
 
+  void _maybeStart(Family? family) {
+    if (_started || family == null) return;
+    _started = true;
+    ref.read(familyControllerProvider.notifier).healOwnProfile();
+    requestTodayInstances(ref);
+    ref.read(notificationsServiceProvider).start();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return ref.watch(currentFamilyProvider).when(
           loading: () =>
               const Scaffold(body: Center(child: CircularProgressIndicator())),
