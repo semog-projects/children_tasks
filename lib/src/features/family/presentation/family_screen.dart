@@ -7,6 +7,7 @@ import '../../../common/br_timezones.dart';
 import '../../../data/models/family.dart';
 import '../../../data/models/member.dart';
 import '../../auth/application/auth_providers.dart';
+import '../../notifications/presentation/notifications_settings_screen.dart';
 import '../application/family_providers.dart';
 import 'child_form_screen.dart';
 
@@ -44,6 +45,14 @@ class FamilyScreen extends ConsumerWidget {
             leading: const Icon(Icons.person_add_alt),
             title: const Text('Adicionar responsável'),
             onTap: () => _showAddGuardianDialog(context, ref),
+          ),
+          const Divider(height: 1),
+          ListTile(
+            leading: const Icon(Icons.notifications_outlined),
+            title: const Text('Notificações'),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const NotificationsSettingsScreen()),
+            ),
           ),
           const Divider(height: 1),
           const _SectionTitle('Crianças'),

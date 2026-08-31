@@ -244,3 +244,13 @@ test('users/{uid}: cada um só o próprio doc', async () => {
     setDoc(doc(guardianDb(), 'users', OUTSIDER), { displayName: 'Hack' }),
   );
 });
+
+test('fcmTokens: cada um só os próprios', async () => {
+  await assertSucceeds(
+    setDoc(doc(guardianDb(), `users/${GUARDIAN}/fcmTokens/tok1`), { platform: 'web' }),
+  );
+  await assertFails(
+    setDoc(doc(guardianDb(), `users/${OUTSIDER}/fcmTokens/tok2`), { platform: 'web' }),
+  );
+  await assertFails(getDoc(doc(outsiderDb(), `users/${GUARDIAN}/fcmTokens/tok1`)));
+});

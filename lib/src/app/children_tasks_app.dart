@@ -8,6 +8,11 @@ import 'theme.dart';
 /// Locale único do app. O projeto é PT-BR apenas (ver README).
 const Locale kAppLocale = Locale('pt', 'BR');
 
+/// Chaves globais para mostrar snackbars / navegar a partir de notificações
+/// FCM (fora da árvore de um `BuildContext`).
+final scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
+final navigatorKey = GlobalKey<NavigatorState>();
+
 /// Raiz da árvore de widgets: configura tema, localização e rota inicial.
 class ChildrenTasksApp extends ConsumerWidget {
   const ChildrenTasksApp({super.key});
@@ -17,6 +22,8 @@ class ChildrenTasksApp extends ConsumerWidget {
     return MaterialApp(
       title: 'Tarefas das Crianças',
       debugShowCheckedModeBanner: false,
+      scaffoldMessengerKey: scaffoldMessengerKey,
+      navigatorKey: navigatorKey,
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
       locale: kAppLocale,

@@ -10,6 +10,9 @@ class FirestoreRefs {
   CollectionReference<Map<String, dynamic>> get users => _db.collection('users');
   DocumentReference<Map<String, dynamic>> user(String uid) => users.doc(uid);
 
+  CollectionReference<Map<String, dynamic>> fcmTokens(String uid) =>
+      user(uid).collection('fcmTokens');
+
   CollectionReference<Map<String, dynamic>> get families => _db.collection('families');
   DocumentReference<Map<String, dynamic>> family(String familyId) => families.doc(familyId);
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../notifications/application/notifications_service.dart';
 import '../../profiles/presentation/profile_gate.dart';
 import '../../tasks/application/task_instances_providers.dart';
 import '../application/family_providers.dart';
@@ -25,6 +26,7 @@ class _FamilyGateState extends ConsumerState<FamilyGate> {
         _healed = true;
         ref.read(familyControllerProvider.notifier).healOwnProfile();
         requestTodayInstances(ref);
+        ref.read(notificationsServiceProvider).start();
       }
     });
 
