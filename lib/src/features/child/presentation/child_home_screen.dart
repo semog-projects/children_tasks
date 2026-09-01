@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../common/empty_hint.dart';
+import '../../../common/spacing.dart';
+import '../../../common/stat_card.dart';
 import '../../../common/sync/sync_banner.dart';
 import '../../auth/application/auth_providers.dart';
 import '../../rewards/presentation/catalog_screen.dart';
@@ -72,30 +75,29 @@ class ChildHomeScreen extends ConsumerWidget {
                 data: (list) {
                   final done = list.where((i) => i.isApproved).length;
                   return ListView(
-                    padding: const EdgeInsets.all(16),
+                    padding: AppSpacing.screen,
                     children: [
-                      Card(
-                        color: theme.colorScheme.primaryContainer,
-                        child: ListTile(
-                          leading: const Icon(Icons.stars_rounded),
-                          title: Text('$balance pontos',
-                              style: theme.textTheme.titleLarge),
-                          subtitle: Text(
-                            list.isEmpty
-                                ? 'Nenhuma tarefa hoje'
-                                : '$done de ${list.length} tarefas de hoje',
-                          ),
-                        ),
+                      StatCard(
+                        icon: Icons.stars_rounded,
+                        value: '$balance pontos',
+                        label: list.isEmpty
+                            ? 'Nenhuma tarefa hoje'
+                            : '$done de ${list.length} tarefas de hoje',
+                        progress: list.isEmpty ? null : done / list.length,
                       ),
+                      const Gap.sm(),
                       const _NextRewardCard(),
-                      const SizedBox(height: 8),
-                      for (final instance in list)
-                        InstanceTile(instance: instance, childMode: true),
-                      if (list.isEmpty)
-                        const Padding(
-                          padding: EdgeInsets.all(24),
-                          child: Text('Aproveite o dia! 🎉',
-                              textAlign: TextAlign.center),
+                      if (list.isNotEmpty) ...[
+                        const Gap.md(),
+                        Text('Tarefas de hoje',
+                            style: theme.textTheme.titleMedium),
+                        const Gap.sm(),
+                        for (final instance in list)
+                          InstanceTile(instance: instance, childMode: true),
+                      ] else
+                        const EmptyHint(
+                          icon: Icons.celebration_rounded,
+                          message: 'Aproveite o dia! 🎉',
                         ),
                     ],
                   );
@@ -119,23 +121,28 @@ class _NextRewardCard extends ConsumerWidget {
     if (next == null) return const SizedBox.shrink();
     final balance = ref.watch(myChildBalanceProvider).asData?.value ?? 0;
     final progress = next.reward.cost == 0 ? 1.0 : balance / next.reward.cost;
+    final theme = Theme.of(context);
 
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: AppSpacing.card,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Próxima recompensa',
-                style: Theme.of(context).textTheme.labelMedium),
-            const SizedBox(height: 4),
-            Text(next.reward.title,
-                style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 8),
-            LinearProgressIndicator(value: progress.clamp(0.0, 1.0)),
-            const SizedBox(height: 6),
+            Text('Próxima recompensa', style: theme.textTheme.labelMedium),
+            const Gap.xs(),
+            Text(next.reward.title, style: theme.textTheme.titleMedium),
+            const Gap.sm(),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(999),
+              child: LinearProgressIndicator(
+                value: progress.clamp(0.0, 1.0),
+                minHeight: 8,
+              ),
+            ),
+            const Gap.xs(),
             Text('Faltam ${next.missing} pontos',
-                style: Theme.of(context).textTheme.bodySmall),
+                style: theme.textTheme.bodySmall),
           ],
         ),
       ),

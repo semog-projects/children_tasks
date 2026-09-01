@@ -102,15 +102,22 @@ class _StatusIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return switch (status) {
-      TaskInstanceStatus.pending =>
-        Icon(Icons.radio_button_unchecked, color: scheme.outline),
-      TaskInstanceStatus.awaitingApproval =>
-        Icon(Icons.hourglass_top, color: scheme.tertiary),
-      TaskInstanceStatus.approved =>
-        Icon(Icons.check_circle, color: scheme.primary),
-      TaskInstanceStatus.rejected =>
-        Icon(Icons.cancel, color: scheme.error),
+    final (IconData icon, Color color) = switch (status) {
+      TaskInstanceStatus.pending => (
+          Icons.radio_button_unchecked,
+          scheme.outline,
+        ),
+      TaskInstanceStatus.awaitingApproval => (
+          Icons.hourglass_top,
+          scheme.tertiary,
+        ),
+      TaskInstanceStatus.approved => (Icons.check_circle, scheme.primary),
+      TaskInstanceStatus.rejected => (Icons.cancel, scheme.error),
     };
+    return CircleAvatar(
+      backgroundColor: color.withValues(alpha: 0.14),
+      foregroundColor: color,
+      child: Icon(icon),
+    );
   }
 }
