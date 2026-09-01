@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../common/brand.dart';
 import '../../../common/spacing.dart';
 import '../application/auth_providers.dart';
 import '../data/auth_repository.dart';
@@ -35,7 +36,7 @@ class SignInScreen extends ConsumerWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.family_restroom_rounded, size: 72, color: theme.colorScheme.primary),
+                const AppLogo(size: 88),
                 const Gap.lg(),
                 Text(
                   'Tarefas das Crianças',
@@ -49,17 +50,11 @@ class SignInScreen extends ConsumerWidget {
                   textAlign: TextAlign.center,
                 ),
                 const Gap.xl(),
-                FilledButton.icon(
-                  onPressed: state.isLoading
-                      ? null
-                      : () => ref.read(authControllerProvider.notifier).signInWithGoogle(),
-                  icon: state.isLoading
-                      ? const SizedBox.square(
-                          dimension: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.login),
-                  label: Text(state.isLoading ? 'Entrando…' : 'Entrar com Google'),
+                GoogleSignInButton(
+                  loading: state.isLoading,
+                  onPressed: () => ref
+                      .read(authControllerProvider.notifier)
+                      .signInWithGoogle(),
                 ),
               ],
             ),
