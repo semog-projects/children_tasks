@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/settings/theme_settings.dart';
+import '../../../common/spacing.dart';
 
 /// Ajustes de aparência. Por ora, só o modo de tema (claro/escuro/sistema).
 /// A preferência é local do aparelho — vale para responsável e criança.
@@ -15,7 +16,7 @@ class AppearanceScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Aparência')),
       body: ListView(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
         children: [
           RadioGroup<ThemeMode>(
             groupValue: mode,
@@ -35,11 +36,12 @@ class AppearanceScreen extends ConsumerWidget {
               ],
             ),
           ),
-          const Padding(
-            padding: EdgeInsets.fromLTRB(16, 12, 16, 0),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+                AppSpacing.md, AppSpacing.sm, AppSpacing.md, 0),
             child: Text(
               'Vale só neste aparelho.',
-              style: TextStyle(fontSize: 12),
+              style: Theme.of(context).textTheme.bodySmall,
             ),
           ),
         ],

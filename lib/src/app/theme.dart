@@ -15,6 +15,9 @@ abstract final class AppTheme {
   /// Raio menor, para itens de lista e chips.
   static const double radiusSm = 12;
 
+  /// Família de fonte do app (ver `pubspec.yaml` e `assets/fonts/`).
+  static const String fontFamily = 'Nunito';
+
   static ThemeData light() => _base(Brightness.light);
 
   static ThemeData dark() => _base(Brightness.dark);
@@ -37,9 +40,16 @@ abstract final class AppTheme {
 
     return ThemeData(
       colorScheme: colorScheme,
+      fontFamily: fontFamily,
+      textTheme: _textTheme(brightness),
       appBarTheme: const AppBarTheme(
         centerTitle: true,
         scrolledUnderElevation: 2,
+        titleTextStyle: TextStyle(
+          fontFamily: fontFamily,
+          fontSize: 20,
+          fontWeight: FontWeight.w700,
+        ),
       ),
       cardTheme: CardThemeData(
         elevation: 0,
@@ -49,6 +59,19 @@ abstract final class AppTheme {
         shape: shape,
       ),
       dividerTheme: DividerThemeData(color: colorScheme.outlineVariant),
+      listTileTheme: ListTileThemeData(
+        titleTextStyle: TextStyle(
+          fontFamily: fontFamily,
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          color: colorScheme.onSurface,
+        ),
+        subtitleTextStyle: TextStyle(
+          fontFamily: fontFamily,
+          fontSize: 14,
+          color: colorScheme.onSurfaceVariant,
+        ),
+      ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           minimumSize: const Size(0, 48),
@@ -94,5 +117,41 @@ abstract final class AppTheme {
       ),
       dialogTheme: DialogThemeData(shape: shape),
     );
+  }
+
+  /// Escala tipográfica: parte da base do Material 3 e reforça a hierarquia —
+  /// títulos mais encorpados (Nunito fica bem em peso alto) e corpo um pouco
+  /// maior para leitura confortável, inclusive nas telas da criança.
+  static TextTheme _textTheme(Brightness brightness) {
+    final base = brightness == Brightness.light
+        ? Typography.material2021().black
+        : Typography.material2021().white;
+
+    return base
+        .apply(
+          fontFamily: fontFamily,
+          bodyColor: base.bodyMedium?.color,
+          displayColor: base.bodyMedium?.color,
+        )
+        .copyWith(
+          headlineSmall: base.headlineSmall?.copyWith(
+            fontFamily: fontFamily,
+            fontWeight: FontWeight.w800,
+          ),
+          titleLarge: base.titleLarge?.copyWith(
+            fontFamily: fontFamily,
+            fontWeight: FontWeight.w700,
+          ),
+          titleMedium: base.titleMedium?.copyWith(
+            fontFamily: fontFamily,
+            fontWeight: FontWeight.w700,
+          ),
+          bodyLarge: base.bodyLarge?.copyWith(fontFamily: fontFamily, fontSize: 16, height: 1.4),
+          bodyMedium: base.bodyMedium?.copyWith(fontFamily: fontFamily, fontSize: 15, height: 1.4),
+          labelLarge: base.labelLarge?.copyWith(
+            fontFamily: fontFamily,
+            fontWeight: FontWeight.w700,
+          ),
+        );
   }
 }
