@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../common/spacing.dart';
 import '../../auth/application/auth_providers.dart';
 import 'family_onboarding_screen.dart';
 import 'invite_widgets.dart';
@@ -32,27 +33,27 @@ class WelcomeScreen extends ConsumerWidget {
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 420),
           child: Padding(
-            padding: const EdgeInsets.all(24),
+            padding: AppSpacing.screen,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Icon(Icons.family_restroom_rounded,
                     size: 64, color: theme.colorScheme.primary),
-                const SizedBox(height: 16),
+                const Gap.md(),
                 Text(
                   'Você ainda não faz parte de uma família',
                   style: theme.textTheme.titleLarge,
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 8),
+                const Gap.sm(),
                 Text(
                   'Crie a sua para gerenciar a rotina das crianças, ou entre '
                   'em uma que já existe com um código de convite.',
                   style: theme.textTheme.bodyMedium,
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 24),
+                const Gap.lg(),
                 FilledButton.icon(
                   onPressed: () => Navigator.of(context).push(
                     MaterialPageRoute<void>(
@@ -62,7 +63,7 @@ class WelcomeScreen extends ConsumerWidget {
                   icon: const Icon(Icons.add_home_rounded),
                   label: const Text('Criar uma família'),
                 ),
-                const SizedBox(height: 8),
+                const Gap.sm(),
                 TextButton.icon(
                   onPressed: () => showDialog<void>(
                     context: context,

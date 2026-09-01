@@ -71,6 +71,16 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
+  fonts:
+    # Nunito (SIL OFL 1.1, ver assets/fonts/OFL.txt) — sem-serifa arredondada,
+    # boa legibilidade para crianças. Arquivo variável: o Flutter mapeia o
+    # FontWeight para o eixo `wght`.
+    - family: Nunito
+      fonts:
+        - asset: assets/fonts/Nunito.ttf
+        - asset: assets/fonts/Nunito-Italic.ttf
+          style: italic
+
   # To add assets to your application, add an assets section, like this:
   # assets:
   #   - images/a_dot_burr.jpeg

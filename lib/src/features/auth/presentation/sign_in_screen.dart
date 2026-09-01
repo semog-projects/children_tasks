@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../common/spacing.dart';
 import '../application/auth_providers.dart';
 import '../data/auth_repository.dart';
 
@@ -30,24 +31,24 @@ class SignInScreen extends ConsumerWidget {
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 360),
           child: Padding(
-            padding: const EdgeInsets.all(24),
+            padding: AppSpacing.screen,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(Icons.family_restroom_rounded, size: 72, color: theme.colorScheme.primary),
-                const SizedBox(height: 24),
+                const Gap.lg(),
                 Text(
                   'Tarefas das Crianças',
                   style: theme.textTheme.headlineSmall,
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 8),
+                const Gap.sm(),
                 Text(
                   'Entre com sua conta Google para gerenciar a rotina da família.',
                   style: theme.textTheme.bodyMedium,
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 32),
+                const Gap.xl(),
                 FilledButton.icon(
                   onPressed: state.isLoading
                       ? null

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../common/br_timezones.dart';
+import '../../../common/spacing.dart';
 import '../application/family_providers.dart';
 
 /// Primeiro acesso: o responsável cria a família.
@@ -57,7 +58,7 @@ class _FamilyOnboardingScreenState extends ConsumerState<FamilyOnboardingScreen>
       appBar: AppBar(title: const Text('Sua família')),
       body: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: AppSpacing.screen,
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 420),
             child: Form(
@@ -66,12 +67,12 @@ class _FamilyOnboardingScreenState extends ConsumerState<FamilyOnboardingScreen>
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text('Vamos criar sua família', style: theme.textTheme.headlineSmall),
-                  const SizedBox(height: 8),
+                  const Gap.sm(),
                   Text(
                     'Depois você adiciona as crianças e as tarefas.',
                     style: theme.textTheme.bodyMedium,
                   ),
-                  const SizedBox(height: 24),
+                  const Gap.lg(),
                   TextFormField(
                     controller: _nameController,
                     decoration: const InputDecoration(
@@ -84,7 +85,7 @@ class _FamilyOnboardingScreenState extends ConsumerState<FamilyOnboardingScreen>
                     validator: (v) =>
                         (v == null || v.trim().isEmpty) ? 'Informe um nome' : null,
                   ),
-                  const SizedBox(height: 8),
+                  const Gap.sm(),
                   DropdownButtonFormField<String>(
                     initialValue: _timezone,
                     isExpanded: true,
@@ -98,7 +99,7 @@ class _FamilyOnboardingScreenState extends ConsumerState<FamilyOnboardingScreen>
                     ],
                     onChanged: (v) => setState(() => _timezone = v ?? defaultTimezone),
                   ),
-                  const SizedBox(height: 24),
+                  const Gap.lg(),
                   FilledButton(
                     onPressed: busy ? null : _submit,
                     child: Text(busy ? 'Criando…' : 'Criar família'),
