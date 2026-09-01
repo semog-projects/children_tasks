@@ -272,7 +272,9 @@ class _ColorSwatch extends StatelessWidget {
               ? Border.all(color: Theme.of(context).colorScheme.onSurface, width: 3)
               : null,
         ),
-        child: selected ? const Icon(Icons.check, color: Colors.white, size: 20) : null,
+        child: selected
+            ? Icon(Icons.check, color: onAvatarColorHex(hex), size: 20)
+            : null,
       ),
     );
   }

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../common/avatar_colors.dart';
+import '../../../common/child_avatar.dart';
 import '../../../common/sync/sync_banner.dart';
 import '../../auth/application/auth_providers.dart';
 import '../../dashboard/presentation/dashboard_screen.dart';
@@ -149,13 +149,7 @@ class _ChildCard extends ConsumerWidget {
 
     return Card(
       child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: colorFromHex(colorHex),
-          child: Text(
-            name.isNotEmpty ? name.characters.first.toUpperCase() : '?',
-            style: const TextStyle(color: Colors.white),
-          ),
-        ),
+        leading: ChildAvatar(name: name, colorHex: colorHex),
         title: Text(name),
         subtitle: Text(
           total == null

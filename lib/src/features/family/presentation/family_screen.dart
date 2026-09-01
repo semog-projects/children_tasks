@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../common/avatar_colors.dart';
 import '../../../common/br_timezones.dart';
+import '../../../common/child_avatar.dart';
 import '../../../data/models/family.dart';
 import '../../../data/models/member.dart';
 import '../../auth/application/auth_providers.dart';
-import '../../notifications/presentation/notifications_settings_screen.dart';
+import '../../settings/presentation/settings_screen.dart';
 import '../application/family_providers.dart';
 import '../application/invite_providers.dart';
 import '../data/invites_repository.dart';
@@ -60,12 +60,11 @@ class FamilyScreen extends ConsumerWidget {
           ),
           const Divider(height: 1),
           ListTile(
-            leading: const Icon(Icons.notifications_outlined),
-            title: const Text('Notificações'),
+            leading: const Icon(Icons.tune),
+            title: const Text('Ajustes'),
+            subtitle: const Text('Notificações e aparência'),
             onTap: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) => const NotificationsSettingsScreen(),
-              ),
+              MaterialPageRoute<void>(builder: (_) => const SettingsScreen()),
             ),
           ),
           const Divider(height: 1),
@@ -341,14 +340,9 @@ class _ChildTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return ListTile(
-      leading: CircleAvatar(
-        backgroundColor: colorFromHex(child.avatarColor),
-        child: Text(
-          child.displayName.isNotEmpty
-              ? child.displayName.characters.first.toUpperCase()
-              : '?',
-          style: const TextStyle(color: Colors.white),
-        ),
+      leading: ChildAvatar(
+        name: child.displayName,
+        colorHex: child.avatarColor,
       ),
       title: Text(child.displayName),
       subtitle: child.linkedUid != null ? const Text('Conta vinculada') : null,

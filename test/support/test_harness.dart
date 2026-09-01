@@ -1,6 +1,7 @@
 import 'package:childrentasks/src/app/children_tasks_app.dart';
 import 'package:childrentasks/src/app/firebase/firebase_bootstrap.dart';
 import 'package:childrentasks/src/app/firebase/firebase_providers.dart';
+import 'package:childrentasks/src/app/settings/theme_settings.dart';
 import 'package:childrentasks/src/common/sync/sync_providers.dart';
 import 'package:childrentasks/src/features/auth/application/auth_providers.dart';
 import 'package:childrentasks/src/features/family/application/invite_providers.dart';
@@ -10,6 +11,7 @@ import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'fake_auth_repository.dart';
 
@@ -67,12 +69,17 @@ Future<({Widget widget, FakeFirebaseFirestore db})> buildTestApp({
   FakeFirebaseFirestore? db,
   InvitesRepository? invites,
   bool online = true,
+  Map<String, Object> prefs = const {},
 }) async {
   final firestore = db ?? FakeFirebaseFirestore();
+
+  SharedPreferences.setMockInitialValues(prefs);
+  final sharedPrefs = await SharedPreferences.getInstance();
 
   final widget = ProviderScope(
     overrides: [
       firebaseInitStatusProvider.overrideWithValue(firebase),
+      sharedPreferencesProvider.overrideWithValue(sharedPrefs),
       authRepositoryProvider.overrideWithValue(auth ?? FakeAuthRepository()),
       firestoreProvider.overrideWithValue(firestore),
       connectivityProvider.overrideWith((ref) => Stream.value(online)),
