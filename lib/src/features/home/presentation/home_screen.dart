@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../common/child_avatar.dart';
+import '../../../common/spacing.dart';
 import '../../../common/sync/sync_banner.dart';
 import '../../auth/application/auth_providers.dart';
 import '../../dashboard/presentation/dashboard_screen.dart';
@@ -89,7 +90,7 @@ class HomeScreen extends ConsumerWidget {
                   loading: () => const Center(child: CircularProgressIndicator()),
                   error: (e, _) => const Center(child: Text('Erro ao carregar a família')),
                   data: (list) => ListView(
-                    padding: const EdgeInsets.all(24),
+                    padding: AppSpacing.screen,
                     children: [
                       if (list.isEmpty)
                         Card(
@@ -110,14 +111,17 @@ class HomeScreen extends ConsumerWidget {
                           icon: const Icon(Icons.today),
                           label: const Text('Tarefas de hoje'),
                         ),
-                        const SizedBox(height: 16),
+                        const Gap.md(),
                         Text('Crianças', style: Theme.of(context).textTheme.titleMedium),
-                        const SizedBox(height: 8),
+                        const Gap.sm(),
                         for (final child in list)
-                          _ChildCard(
-                            childId: child.id,
-                            name: child.displayName,
-                            colorHex: child.avatarColor,
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                            child: _ChildCard(
+                              childId: child.id,
+                              name: child.displayName,
+                              colorHex: child.avatarColor,
+                            ),
                           ),
                       ],
                     ],
@@ -146,36 +150,61 @@ class _ChildCard extends ConsumerWidget {
 
     final done = instances?.where((i) => i.isApproved).length;
     final total = instances?.length;
+    final theme = Theme.of(context);
 
     return Card(
-      child: ListTile(
-        leading: ChildAvatar(name: name, colorHex: colorHex),
-        title: Text(name),
-        subtitle: Text(
-          total == null
-              ? '…'
-              : total == 0
-                  ? 'Sem tarefas hoje'
-                  : '$done de $total tarefas hoje',
-        ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (balance != null)
-              Text('$balance pts', style: Theme.of(context).textTheme.titleMedium),
-            IconButton(
-              tooltip: 'Recompensas de $name',
-              icon: const Icon(Icons.card_giftcard),
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => CatalogScreen(memberId: childId, childName: name),
-                ),
-              ),
-            ),
-          ],
-        ),
+      child: InkWell(
         onTap: () => Navigator.of(context).push(
-          MaterialPageRoute<void>(builder: (_) => TodayScreen(onlyChildId: childId)),
+          MaterialPageRoute<void>(
+              builder: (_) => TodayScreen(onlyChildId: childId)),
+        ),
+        child: Padding(
+          padding: AppSpacing.card,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  ChildAvatar(name: name, colorHex: colorHex),
+                  const Gap.sm(),
+                  Expanded(
+                    child: Text(name, style: theme.textTheme.titleMedium),
+                  ),
+                  if (balance != null)
+                    Text('$balance pts', style: theme.textTheme.titleMedium),
+                  IconButton(
+                    tooltip: 'Recompensas de $name',
+                    icon: const Icon(Icons.card_giftcard),
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) =>
+                            CatalogScreen(memberId: childId, childName: name),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const Gap.xs(),
+              if (total != null && total > 0) ...[
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(999),
+                  child: LinearProgressIndicator(
+                    value: (done ?? 0) / total,
+                    minHeight: 6,
+                  ),
+                ),
+                const Gap.xs(),
+              ],
+              Text(
+                total == null
+                    ? '…'
+                    : total == 0
+                        ? 'Sem tarefas hoje'
+                        : '$done de $total tarefas hoje',
+                style: theme.textTheme.bodySmall,
+              ),
+            ],
+          ),
         ),
       ),
     );

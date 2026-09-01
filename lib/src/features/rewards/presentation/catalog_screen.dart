@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../common/empty_hint.dart';
+import '../../../common/spacing.dart';
+import '../../../common/stat_card.dart';
 import '../../../common/sync/sync_providers.dart';
 import '../../../data/models/redemption.dart';
 import '../../../data/models/reward.dart';
@@ -61,28 +64,27 @@ class CatalogScreen extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => const Center(child: Text('Erro ao carregar')),
         data: (list) => ListView(
-          padding: const EdgeInsets.only(bottom: 24),
+          padding: const EdgeInsets.fromLTRB(
+              AppSpacing.md, AppSpacing.md, AppSpacing.md, AppSpacing.lg),
           children: [
-            Card(
-              margin: const EdgeInsets.all(16),
-              color: theme.colorScheme.primaryContainer,
-              child: ListTile(
-                leading: const Icon(Icons.stars_rounded),
-                title: Text('$balance pontos', style: theme.textTheme.titleLarge),
-                subtitle: const Text('Saldo disponível'),
-              ),
+            StatCard(
+              icon: Icons.stars_rounded,
+              value: '$balance pontos',
+              label: 'Saldo disponível',
             ),
-            if (!online)
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16),
-                child: Text(
-                  'O resgate precisa de internet — tente de novo quando a conexão voltar.',
-                ),
+            if (!online) ...[
+              const Gap.sm(),
+              Text(
+                'O resgate precisa de internet — tente de novo quando a conexão voltar.',
+                style: theme.textTheme.bodySmall
+                    ?.copyWith(color: theme.colorScheme.error),
               ),
+            ],
+            const Gap.md(),
             if (list.isEmpty)
-              const Padding(
-                padding: EdgeInsets.all(16),
-                child: Text('Nenhuma recompensa disponível.'),
+              const EmptyHint(
+                icon: Icons.card_giftcard_outlined,
+                message: 'Nenhuma recompensa disponível.',
               )
             else
               for (final reward in list)
@@ -92,18 +94,16 @@ class CatalogScreen extends ConsumerWidget {
                   busy: busy,
                   onRedeem: () => _confirmRedeem(context, ref, reward),
                 ),
-            const Divider(height: 32),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text('Histórico', style: theme.textTheme.titleMedium),
-            ),
+            const Divider(height: AppSpacing.xl),
+            Text('Histórico', style: theme.textTheme.titleMedium),
+            const Gap.sm(),
             redemptions.when(
               loading: () => const SizedBox.shrink(),
               error: (e, _) => const SizedBox.shrink(),
               data: (history) => history.isEmpty
-                  ? const Padding(
-                      padding: EdgeInsets.all(16),
-                      child: Text('Nenhum resgate ainda.'),
+                  ? const EmptyHint(
+                      icon: Icons.history_rounded,
+                      message: 'Nenhum resgate ainda.',
                     )
                   : Column(
                       children: [
@@ -157,9 +157,15 @@ class _RewardCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: theme.colorScheme.secondaryContainer,
+          foregroundColor: theme.colorScheme.onSecondaryContainer,
+          child: const Icon(Icons.redeem_rounded),
+        ),
         title: Text(reward.title),
         subtitle: Text([
           '${reward.cost} pts',

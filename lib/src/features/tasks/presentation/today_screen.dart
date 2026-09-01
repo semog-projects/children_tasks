@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../common/child_avatar.dart';
+import '../../../common/empty_hint.dart';
+import '../../../common/spacing.dart';
 import '../../../data/models/member.dart';
 import '../../../data/models/task_instance.dart';
 import '../../family/application/family_providers.dart';
@@ -9,8 +11,7 @@ import '../application/approval_providers.dart';
 import '../application/task_instances_providers.dart';
 import 'instance_tile.dart';
 
-/// Tarefas de hoje, agrupadas por criança. Enquanto não existe "modo criança"
-/// (issue #8), o responsável vê e opera tudo aqui.
+/// Tarefas de hoje, agrupadas por criança. O responsável vê e opera tudo aqui.
 class TodayScreen extends ConsumerWidget {
   const TodayScreen({super.key, this.onlyChildId});
 
@@ -22,7 +23,8 @@ class TodayScreen extends ConsumerWidget {
       if (next.hasError && !next.isLoading) {
         ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()
-          ..showSnackBar(const SnackBar(content: Text('Não foi possível atualizar a tarefa.')));
+          ..showSnackBar(const SnackBar(
+              content: Text('Não foi possível atualizar a tarefa.')));
       }
     });
 
@@ -39,15 +41,19 @@ class TodayScreen extends ConsumerWidget {
               ? children
               : children.where((c) => c.id == onlyChildId).toList();
           if (visibleChildren.isEmpty) {
-            return const Center(child: Text('Nenhuma criança na família.'));
+            return const EmptyHint(
+              icon: Icons.group_outlined,
+              message: 'Nenhuma criança na família.',
+            );
           }
           return ListView(
-            padding: const EdgeInsets.only(bottom: 24),
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
             children: [
               for (final child in visibleChildren)
                 _ChildSection(
                   child: child,
-                  instances: list.where((i) => i.memberId == child.id).toList(),
+                  instances:
+                      list.where((i) => i.memberId == child.id).toList(),
                 ),
             ],
           );
@@ -66,6 +72,8 @@ class _ChildSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final done = instances.where((i) => i.isApproved).length;
+    final total = instances.length;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -75,16 +83,26 @@ class _ChildSection extends StatelessWidget {
             colorHex: child.avatarColor,
           ),
           title: Text(child.displayName),
-          subtitle: Text(
-            instances.isEmpty ? 'Sem tarefas hoje' : '$done de ${instances.length} concluídas',
-          ),
+          subtitle: total == 0
+              ? const Text('Sem tarefas hoje')
+              : Padding(
+                  padding: const EdgeInsets.only(top: AppSpacing.xs),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(999),
+                    child: LinearProgressIndicator(
+                      value: done / total,
+                      minHeight: 6,
+                    ),
+                  ),
+                ),
+          trailing: total == 0 ? null : Text('$done/$total'),
         ),
         for (final instance in instances)
           Padding(
-            padding: const EdgeInsets.only(left: 16),
+            padding: const EdgeInsets.only(left: AppSpacing.md),
             child: InstanceTile(instance: instance),
           ),
-        const Divider(height: 24),
+        const Divider(height: AppSpacing.lg),
       ],
     );
   }
