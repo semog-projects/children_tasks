@@ -187,6 +187,10 @@ flutter test
 
 # Rodar (escolha o dispositivo com -d, ex.: chrome)
 flutter run
+
+# Regerar ícone e splash (após editar assets/icon/*.svg → *.png)
+dart run flutter_launcher_icons
+dart run flutter_native_splash:create
 ```
 
 ### Testes das Security Rules

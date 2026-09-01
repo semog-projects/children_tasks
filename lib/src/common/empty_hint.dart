@@ -27,7 +27,15 @@ class EmptyHint extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 40, color: theme.colorScheme.outline),
+          Container(
+            width: 88,
+            height: 88,
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainerHighest,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, size: 40, color: theme.colorScheme.primary),
+          ),
           const Gap.md(),
           Text(
             message,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../common/brand.dart';
 import '../../../common/spacing.dart';
 import '../../auth/application/auth_providers.dart';
 import 'family_onboarding_screen.dart';
@@ -38,8 +39,7 @@ class WelcomeScreen extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Icon(Icons.family_restroom_rounded,
-                    size: 64, color: theme.colorScheme.primary),
+                const Center(child: AppLogo(size: 72)),
                 const Gap.md(),
                 Text(
                   'Você ainda não faz parte de uma família',

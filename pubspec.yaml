@@ -59,6 +59,34 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   firebase_auth_mocks: ^0.15.2
   fake_cloud_firestore: ^4.2.0
+  # Geradores de ícone e splash (rodar sob demanda; ver README).
+  flutter_launcher_icons: ^0.14.4
+  flutter_native_splash: ^2.4.6
+
+# Ícone do app (rodar: `dart run flutter_launcher_icons`).
+flutter_launcher_icons:
+  image_path: "assets/icon/app_icon.png"
+  android: true
+  ios: true
+  remove_alpha_ios: true
+  adaptive_icon_background: "#4056D6"
+  adaptive_icon_foreground: "assets/icon/app_icon_foreground.png"
+  web:
+    generate: true
+    image_path: "assets/icon/app_icon.png"
+  windows:
+    generate: true
+    image_path: "assets/icon/app_icon.png"
+
+# Splash screen (rodar: `dart run flutter_native_splash:create`).
+flutter_native_splash:
+  color: "#4C6FFF"
+  color_dark: "#12172B"
+  image: "assets/icon/app_icon_foreground.png"
+  android_12:
+    color: "#4C6FFF"
+    color_dark: "#12172B"
+    image: "assets/icon/app_icon_foreground.png"
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -80,6 +108,9 @@ flutter:
         - asset: assets/fonts/Nunito.ttf
         - asset: assets/fonts/Nunito-Italic.ttf
           style: italic
+
+  assets:
+    - assets/images/
 
   # To add assets to your application, add an assets section, like this:
   # assets:
