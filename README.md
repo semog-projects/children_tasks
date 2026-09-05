@@ -204,6 +204,34 @@ firebase emulators:exec --only firestore \
 O app roda sem Firebase (estado de bootstrap). Para ligar o backend, faça a
 configuração abaixo.
 
+## Release (produção)
+
+Publicar um **Release no GitHub** (tag `vX.Y.Z`) dispara
+`.github/workflows/release.yml`, que builda o app apontando para
+`children-tasks-prod` (`--dart-define=FLAVOR=prod USE_FIREBASE_EMULATOR=false`)
+e anexa `.aab` + `.apk` ao release. `versionName` vem da tag; `versionCode` do
+número da run.
+
+Secrets do repositório:
+
+| Secret | O quê |
+|---|---|
+| `GOOGLE_SERVICES_JSON` | base64 do `google-services.json` de **prod** (`base64 -w0 google-services.json`) |
+| `GOOGLE_SERVER_CLIENT_ID` | OAuth client "Web" do `children-tasks-prod` |
+| `ANDROID_KEYSTORE_BASE64` | base64 do keystore de **upload** (`.jks`) |
+| `ANDROID_KEYSTORE_PASSWORD` / `ANDROID_KEY_ALIAS` / `ANDROID_KEY_PASSWORD` | credenciais do keystore |
+
+Sem os secrets de keystore o build sai **assinado com a chave de debug** (só
+pra inspeção — a Play Store exige o keystore real). Local, o
+`android/app/build.gradle.kts` lê `android/key.properties` (gitignored) para
+assinar `flutter build … --release`.
+
+Gerar o keystore de upload (uma vez, guarde bem):
+```bash
+keytool -genkey -v -keystore upload-keystore.jks -keyalg RSA -keysize 2048 \
+  -validity 10000 -alias upload
+```
+
 ## Configuração do Firebase
 
 O SDK e a estrutura já estão integrados (issue #4). Falta provisionar os
