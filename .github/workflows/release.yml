@@ -1,0 +1,114 @@
+name: Release (prod)
+
+# Publica um Release no GitHub -> builda o app apontando para `children-tasks-prod`
+# e anexa os artefatos (AAB + APK) ao release.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Tag/branch para buildar"
+        required: false
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+env:
+  FLUTTER_VERSION: "3.44.2"
+
+jobs:
+  android:
+    name: Android (AAB + APK, prod)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.ref || github.ref }}
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: google-services.json (prod)
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -z "$GOOGLE_SERVICES_JSON" ]; then
+            echo "::error::Secret GOOGLE_SERVICES_JSON (base64 do google-services.json de prod) não configurado."
+            exit 1
+          fi
+          echo "$GOOGLE_SERVICES_JSON" | base64 -d > android/app/google-services.json
+          python3 -c "import json,sys; d=json.load(open('android/app/google-services.json')); print('projectId:', d['project_info']['project_id'])"
+
+      - name: Assinatura de release (se os secrets existirem)
+        id: signing
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > android/app/upload-keystore.jks
+            {
+              echo "storeFile=upload-keystore.jks"
+              echo "storePassword=$KEYSTORE_PASSWORD"
+              echo "keyAlias=$KEY_ALIAS"
+              echo "keyPassword=$KEY_PASSWORD"
+            } > android/key.properties
+            echo "signed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::Sem secrets de keystore — build assinado com a chave de debug (não serve para a Play Store)."
+            echo "signed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Versão a partir da tag
+        id: version
+        run: |
+          RAW="${{ github.event.release.tag_name || github.ref_name }}"
+          NAME="${RAW#v}"
+          [ -z "$NAME" ] && NAME="0.0.0"
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+          echo "code=${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+
+      - run: flutter pub get
+
+      - name: Build (prod, release)
+        env:
+          GOOGLE_SERVER_CLIENT_ID: ${{ secrets.GOOGLE_SERVER_CLIENT_ID }}
+        run: |
+          DEFINES="--dart-define=FLAVOR=prod --dart-define=USE_FIREBASE_EMULATOR=false --dart-define=GOOGLE_SERVER_CLIENT_ID=${GOOGLE_SERVER_CLIENT_ID}"
+          VER="--build-name=${{ steps.version.outputs.name }} --build-number=${{ steps.version.outputs.code }}"
+          flutter build appbundle --release $VER $DEFINES
+          flutter build apk --release $VER $DEFINES
+
+      - name: Renomeia os artefatos
+        run: |
+          V="${{ steps.version.outputs.name }}+${{ steps.version.outputs.code }}"
+          mkdir -p dist
+          cp build/app/outputs/bundle/release/app-release.aab "dist/children-tasks-$V.aab"
+          cp build/app/outputs/flutter-apk/app-release.apk "dist/children-tasks-$V.apk"
+          ls -la dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-release
+          path: dist/*
+
+      - name: Anexa ao Release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
