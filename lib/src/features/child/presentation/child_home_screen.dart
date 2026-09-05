@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../common/empty_hint.dart';
+import '../../../common/pull_refresh.dart';
 import '../../../common/spacing.dart';
 import '../../../common/stat_card.dart';
 import '../../../common/sync/sync_banner.dart';
 import '../../auth/application/auth_providers.dart';
 import '../../rewards/presentation/catalog_screen.dart';
+import '../../tasks/application/task_instances_providers.dart';
 import '../../tasks/presentation/instance_tile.dart';
 import '../application/child_providers.dart';
 import 'child_notifications_screen.dart';
@@ -74,7 +76,18 @@ class ChildHomeScreen extends ConsumerWidget {
                 error: (e, _) => const Center(child: Text('Erro ao carregar')),
                 data: (list) {
                   final done = list.where((i) => i.isApproved).length;
-                  return ListView(
+                  return RefreshIndicator(
+                    onRefresh: () => pullRefresh(
+                      ref,
+                      invalidate: (r) {
+                        r.invalidate(myChildInstancesProvider);
+                        r.invalidate(myChildBalanceProvider);
+                        r.invalidate(myChildRedemptionsProvider);
+                      },
+                      also: () => requestTodayInstances(ref),
+                    ),
+                    child: ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
                     padding: AppSpacing.screen,
                     children: [
                       StatCard(
@@ -100,6 +113,7 @@ class ChildHomeScreen extends ConsumerWidget {
                           message: 'Aproveite o dia! 🎉',
                         ),
                     ],
+                    ),
                   );
                 },
               ),

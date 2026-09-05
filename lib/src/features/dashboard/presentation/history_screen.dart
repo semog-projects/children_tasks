@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../common/pull_refresh.dart';
 import '../../../data/data_providers.dart';
 import '../../../data/models/ledger_entry.dart';
 import '../../../data/models/member.dart';
@@ -106,18 +107,35 @@ class HistoryScreen extends ConsumerWidget {
           ),
           const Divider(height: 1),
           Expanded(
-            child: entries.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => const Center(child: Text('Erro ao carregar')),
-              data: (list) => list.isEmpty
-                  ? const Center(child: Text('Nada no período.'))
-                  : ListView.builder(
-                      itemCount: list.length,
-                      itemBuilder: (_, i) => _EntryTile(
-                        entry: list[i],
-                        childName: names[list[i].memberId] ?? 'Criança removida',
+            child: RefreshIndicator(
+              onRefresh: () => pullRefresh(
+                ref,
+                invalidate: (r) {
+                  r.invalidate(_historyProvider);
+                  r.invalidate(familyChildrenProvider);
+                },
+              ),
+              child: entries.when(
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (e, _) => const Center(child: Text('Erro ao carregar')),
+                data: (list) => list.isEmpty
+                    ? ListView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        children: const [
+                          SizedBox(height: 120),
+                          Center(child: Text('Nada no período.')),
+                        ],
+                      )
+                    : ListView.builder(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        itemCount: list.length,
+                        itemBuilder: (_, i) => _EntryTile(
+                          entry: list[i],
+                          childName:
+                              names[list[i].memberId] ?? 'Criança removida',
+                        ),
                       ),
-                    ),
+              ),
             ),
           ),
         ],

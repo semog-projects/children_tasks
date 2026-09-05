@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../common/empty_hint.dart';
+import '../../../common/pull_refresh.dart';
 import '../../../common/spacing.dart';
 import '../../../common/stat_card.dart';
 import '../../../common/sync/sync_providers.dart';
@@ -63,7 +64,22 @@ class CatalogScreen extends ConsumerWidget {
       body: rewards.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => const Center(child: Text('Erro ao carregar')),
-        data: (list) => ListView(
+        data: (list) => RefreshIndicator(
+          onRefresh: () => pullRefresh(
+            ref,
+            invalidate: (r) {
+              r.invalidate(activeRewardsProvider);
+              if (childMode) {
+                r.invalidate(myChildBalanceProvider);
+                r.invalidate(myChildRedemptionsProvider);
+              } else {
+                r.invalidate(childBalanceProvider);
+                r.invalidate(childRedemptionsProvider);
+              }
+            },
+          ),
+          child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(
               AppSpacing.md, AppSpacing.md, AppSpacing.md, AppSpacing.lg),
           children: [
@@ -113,6 +129,7 @@ class CatalogScreen extends ConsumerWidget {
                     ),
             ),
           ],
+          ),
         ),
       ),
     );

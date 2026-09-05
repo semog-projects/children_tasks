@@ -115,6 +115,22 @@ void main() {
     expect(find.text('1 de 2 tarefas hoje'), findsOneWidget);
   });
 
+  testWidgets('home: arrastar pra baixo dispara o RefreshIndicator',
+      (tester) async {
+    final app = await buildTestApp(
+      auth: FakeAuthRepository(initialUser: FakeAuthRepository.user()),
+    );
+    await seedFamily(app.db, uid: 'uid-ana', childNames: ['Bia']);
+    await pumpSettled(tester, app.widget);
+
+    expect(find.byType(RefreshIndicator), findsOneWidget);
+
+    await tester.fling(find.text('Crianças'), const Offset(0, 400), 1000);
+    await tester.pump();
+    expect(find.byType(RefreshProgressIndicator), findsOneWidget);
+    await tester.pumpAndSettle();
+  });
+
   test('Recurrence.summary resume a repetição', () {
     final weekly = Recurrence(
       type: RecurrenceType.weekly,
