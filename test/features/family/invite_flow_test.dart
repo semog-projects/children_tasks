@@ -24,7 +24,7 @@ void main() {
         await seedFamily(app.db, uid: 'uid-ana', childNames: ['Bia']);
     await pumpSettled(tester, app.widget);
 
-    await tester.tap(find.byTooltip('Família'));
+    await openHomeMenu(tester, 'Família');
     await tester.pumpAndSettle();
     await tester.tap(find.text('Bia'));
     await tester.pumpAndSettle();
@@ -94,7 +94,7 @@ void main() {
     final familyId = await seedFamily(app.db, uid: 'uid-ana');
     await pumpSettled(tester, app.widget);
 
-    await tester.tap(find.byTooltip('Família'));
+    await openHomeMenu(tester, 'Família');
     await tester.pumpAndSettle();
     await tester.tap(find.text('Convidar responsável'));
     await tester.pumpAndSettle();
@@ -126,7 +126,7 @@ void main() {
     await seedFamily(app.db, uid: 'uid-ana');
     await pumpSettled(tester, app.widget);
 
-    await tester.tap(find.byTooltip('Família'));
+    await openHomeMenu(tester, 'Família');
     await tester.pumpAndSettle();
 
     expect(find.text('Código PEND1234'), findsOneWidget);

@@ -23,12 +23,11 @@ abstract final class AppTheme {
   static ThemeData dark() => _base(Brightness.dark);
 
   static ThemeData _base(Brightness brightness) {
+    // Esquema padrão do Material 3 (tonalSpot) — melhor contraste dos neutros
+    // (`onSurfaceVariant` etc.) que as variantes mais coloridas.
     final colorScheme = ColorScheme.fromSeed(
       seedColor: seed,
       brightness: brightness,
-      // Paleta um pouco mais viva/colorida que o padrão — combina melhor com
-      // o tom "família" do app, sem sair da harmonia do Material 3.
-      dynamicSchemeVariant: DynamicSchemeVariant.vibrant,
     );
 
     final shape = RoundedRectangleBorder(

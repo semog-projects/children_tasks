@@ -46,7 +46,7 @@ void main() {
     final familyId = await seedFamily(app.db, uid: 'uid-ana', childNames: ['Bia']);
     await pumpSettled(tester, app.widget);
 
-    await tester.tap(find.byTooltip('Recompensas'));
+    await openHomeMenu(tester, 'Recompensas');
     await tester.pumpAndSettle();
     await tester.tap(find.text('Recompensa'));
     await tester.pumpAndSettle();

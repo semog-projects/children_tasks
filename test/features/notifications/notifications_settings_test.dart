@@ -12,7 +12,7 @@ void main() {
     await seedFamily(app.db, uid: 'uid-ana', childNames: ['Bia']);
     await pumpSettled(tester, app.widget);
 
-    await tester.tap(find.byTooltip('Família'));
+    await openHomeMenu(tester, 'Família');
     await tester.pumpAndSettle();
     await tester.tap(find.text('Ajustes'));
     await tester.pumpAndSettle();
