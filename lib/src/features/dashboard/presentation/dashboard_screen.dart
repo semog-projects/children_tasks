@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../common/child_avatar.dart';
+import '../../../common/pull_refresh.dart';
 import '../../../data/models/member.dart';
 import '../../family/application/family_providers.dart';
 import '../../points/application/points_providers.dart';
@@ -33,19 +34,32 @@ class DashboardScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          for (final child in children) _ChildSummary(child: child),
-          const SizedBox(height: 16),
-          if (children.isNotEmpty)
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: PointsChart(days: days, children: children),
+      body: RefreshIndicator(
+        onRefresh: () => pullRefresh(
+          ref,
+          invalidate: (r) {
+            r.invalidate(familyChildrenProvider);
+            r.invalidate(dailyEarningsProvider);
+            r.invalidate(weekPointsProvider);
+            r.invalidate(childBalanceProvider);
+            r.invalidate(childTodayInstancesProvider);
+          },
+        ),
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(16),
+          children: [
+            for (final child in children) _ChildSummary(child: child),
+            const SizedBox(height: 16),
+            if (children.isNotEmpty)
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: PointsChart(days: days, children: children),
+                ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }

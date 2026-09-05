@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../common/child_avatar.dart';
+import '../../../common/pull_refresh.dart';
 import '../../../common/spacing.dart';
 import '../../../common/sync/sync_banner.dart';
 import '../../auth/application/auth_providers.dart';
@@ -124,7 +125,19 @@ class HomeScreen extends ConsumerWidget {
                 child: children.when(
                   loading: () => const Center(child: CircularProgressIndicator()),
                   error: (e, _) => const Center(child: Text('Erro ao carregar a família')),
-                  data: (list) => ListView(
+                  data: (list) => RefreshIndicator(
+                    onRefresh: () => pullRefresh(
+                      ref,
+                      invalidate: (r) {
+                        r.invalidate(familyChildrenProvider);
+                        r.invalidate(childTodayInstancesProvider);
+                        r.invalidate(childBalanceProvider);
+                        r.invalidate(pendingApprovalsProvider);
+                      },
+                      also: () => requestTodayInstances(ref),
+                    ),
+                    child: ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
                     padding: AppSpacing.screen,
                     children: [
                       if (list.isEmpty)
@@ -160,6 +173,7 @@ class HomeScreen extends ConsumerWidget {
                           ),
                       ],
                     ],
+                    ),
                   ),
                 ),
               ),

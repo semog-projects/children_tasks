@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../common/child_avatar.dart';
 import '../../../common/empty_hint.dart';
+import '../../../common/pull_refresh.dart';
 import '../../../common/spacing.dart';
 import '../../../data/models/member.dart';
 import '../../../data/models/task_instance.dart';
@@ -46,16 +47,27 @@ class TodayScreen extends ConsumerWidget {
               message: 'Nenhuma criança na família.',
             );
           }
-          return ListView(
-            padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-            children: [
-              for (final child in visibleChildren)
-                _ChildSection(
-                  child: child,
-                  instances:
-                      list.where((i) => i.memberId == child.id).toList(),
-                ),
-            ],
+          return RefreshIndicator(
+            onRefresh: () => pullRefresh(
+              ref,
+              invalidate: (r) {
+                r.invalidate(todayInstancesProvider);
+                r.invalidate(familyChildrenProvider);
+              },
+              also: () => requestTodayInstances(ref),
+            ),
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+              children: [
+                for (final child in visibleChildren)
+                  _ChildSection(
+                    child: child,
+                    instances:
+                        list.where((i) => i.memberId == child.id).toList(),
+                  ),
+              ],
+            ),
           );
         },
       ),
