@@ -29,7 +29,13 @@ class HomeScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(family?.name ?? 'Tarefas das Crianças'),
+        // Alinhado à esquerda: com 6 ações, o título centralizado não cabe.
+        centerTitle: false,
+        titleSpacing: 0,
+        title: Text(
+          family?.name ?? 'Tarefas das Crianças',
+          overflow: TextOverflow.ellipsis,
+        ),
         actions: [
           IconButton(
             tooltip: 'Aprovações',

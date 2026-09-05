@@ -39,6 +39,11 @@ class InstanceTile extends ConsumerWidget {
       trailing: switch (instance.status) {
         TaskInstanceStatus.pending => FilledButton.tonal(
             onPressed: busy ? null : () => controller.markDone(instance),
+            style: FilledButton.styleFrom(
+              minimumSize: const Size(0, 36),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              visualDensity: VisualDensity.compact,
+            ),
             child: const Text('Feita'),
           ),
         TaskInstanceStatus.awaitingApproval => childMode
