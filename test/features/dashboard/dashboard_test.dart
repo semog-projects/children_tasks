@@ -47,7 +47,7 @@ void main() {
         memberId: child.id, points: -8, type: 'redeem', at: now.subtract(const Duration(days: 1)));
 
     await pumpSettled(tester, app.widget);
-    await tester.tap(find.byTooltip('Painel'));
+    await openHomeMenu(tester, 'Painel');
     await tester.pumpAndSettle();
 
     expect(find.text('Painel'), findsOneWidget);
@@ -75,7 +75,7 @@ void main() {
         memberId: child.id, points: 20, type: 'earn', at: now.subtract(const Duration(days: 50)));
 
     await pumpSettled(tester, app.widget);
-    await tester.tap(find.byTooltip('Painel'));
+    await openHomeMenu(tester, 'Painel');
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Histórico'));
     await tester.pumpAndSettle();

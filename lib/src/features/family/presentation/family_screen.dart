@@ -403,9 +403,10 @@ class _SectionTitle extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
       child: Text(
         text.toUpperCase(),
-        style: Theme.of(context).textTheme.labelMedium?.copyWith(
+        style: Theme.of(context).textTheme.labelLarge?.copyWith(
               color: Theme.of(context).colorScheme.primary,
-              letterSpacing: 1,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.8,
             ),
       ),
     );

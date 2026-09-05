@@ -23,7 +23,7 @@ void main() {
     await seedFamily(app.db, uid: 'uid-ana');
     await pumpSettled(tester, app.widget);
 
-    await tester.tap(find.byTooltip('Sair da conta'));
+    await openHomeMenu(tester, 'Sair da conta');
     await tester.pumpAndSettle();
 
     expect(find.text('Entrar com Google'), findsOneWidget);

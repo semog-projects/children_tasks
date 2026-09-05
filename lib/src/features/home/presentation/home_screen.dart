@@ -17,9 +17,47 @@ import '../../tasks/presentation/approvals_screen.dart';
 import '../../tasks/presentation/tasks_screen.dart';
 import '../../tasks/presentation/today_screen.dart';
 
+enum _HomeMenu { tasks, rewards, dashboard, family, signOut }
+
+class _MenuRow extends StatelessWidget {
+  const _MenuRow(this.icon, this.label);
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon,
+            size: 22, color: Theme.of(context).colorScheme.onSurfaceVariant),
+        const SizedBox(width: 12),
+        Flexible(child: Text(label, overflow: TextOverflow.ellipsis)),
+      ],
+    );
+  }
+}
+
 /// Tela inicial do responsável: crianças, tarefas de hoje e aprovações.
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
+
+  void _onMenu(BuildContext context, WidgetRef ref, _HomeMenu item) {
+    final nav = Navigator.of(context);
+    switch (item) {
+      case _HomeMenu.tasks:
+        nav.push(MaterialPageRoute<void>(builder: (_) => const TasksScreen()));
+      case _HomeMenu.rewards:
+        nav.push(MaterialPageRoute<void>(builder: (_) => const RewardsScreen()));
+      case _HomeMenu.dashboard:
+        nav.push(
+            MaterialPageRoute<void>(builder: (_) => const DashboardScreen()));
+      case _HomeMenu.family:
+        nav.push(MaterialPageRoute<void>(builder: (_) => const FamilyScreen()));
+      case _HomeMenu.signOut:
+        ref.read(authControllerProvider.notifier).signOut();
+    }
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -29,7 +67,12 @@ class HomeScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(family?.name ?? 'Tarefas das Crianças'),
+        centerTitle: false,
+        titleSpacing: 0,
+        title: Text(
+          family?.name ?? 'Tarefas das Crianças',
+          overflow: TextOverflow.ellipsis,
+        ),
         actions: [
           IconButton(
             tooltip: 'Aprovações',
@@ -42,40 +85,32 @@ class HomeScreen extends ConsumerWidget {
               MaterialPageRoute<void>(builder: (_) => const ApprovalsScreen()),
             ),
           ),
-          IconButton(
-            tooltip: 'Painel',
-            icon: const Icon(Icons.insights),
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(builder: (_) => const DashboardScreen()),
-            ),
-          ),
-          IconButton(
-            tooltip: 'Definição de tarefas',
-            icon: const Icon(Icons.checklist_rounded),
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(builder: (_) => const TasksScreen()),
-            ),
-          ),
-          IconButton(
-            tooltip: 'Recompensas',
-            icon: const Icon(Icons.card_giftcard),
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(builder: (_) => const RewardsScreen()),
-            ),
-          ),
-          IconButton(
-            tooltip: 'Família',
-            icon: const Icon(Icons.group),
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(builder: (_) => const FamilyScreen()),
-            ),
-          ),
-          IconButton(
-            tooltip: 'Sair da conta',
-            icon: const Icon(Icons.logout),
-            onPressed: ref.watch(authControllerProvider).isLoading
-                ? null
-                : () => ref.read(authControllerProvider.notifier).signOut(),
+          PopupMenuButton<_HomeMenu>(
+            tooltip: 'Mais',
+            onSelected: (item) => _onMenu(context, ref, item),
+            itemBuilder: (_) => const [
+              PopupMenuItem(
+                value: _HomeMenu.tasks,
+                child: _MenuRow(Icons.checklist_rounded, 'Definição de tarefas'),
+              ),
+              PopupMenuItem(
+                value: _HomeMenu.rewards,
+                child: _MenuRow(Icons.card_giftcard, 'Recompensas'),
+              ),
+              PopupMenuItem(
+                value: _HomeMenu.dashboard,
+                child: _MenuRow(Icons.insights, 'Painel'),
+              ),
+              PopupMenuItem(
+                value: _HomeMenu.family,
+                child: _MenuRow(Icons.group, 'Família'),
+              ),
+              PopupMenuDivider(),
+              PopupMenuItem(
+                value: _HomeMenu.signOut,
+                child: _MenuRow(Icons.logout, 'Sair da conta'),
+              ),
+            ],
           ),
         ],
       ),

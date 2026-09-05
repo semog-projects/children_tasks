@@ -96,3 +96,12 @@ Future<void> pumpSettled(WidgetTester tester, Widget widget) async {
   await tester.pumpWidget(widget);
   await tester.pumpAndSettle();
 }
+
+/// Abre o menu "Mais" da home do responsável e toca no item [label]
+/// (Definição de tarefas, Recompensas, Painel, Família, Sair da conta).
+Future<void> openHomeMenu(WidgetTester tester, String label) async {
+  await tester.tap(find.byTooltip('Mais'));
+  await tester.pumpAndSettle();
+  await tester.tap(find.text(label).last);
+  await tester.pumpAndSettle();
+}

@@ -33,7 +33,7 @@ void main() {
     final familyId = await seedFamily(app.db, uid: 'uid-ana');
     await pumpSettled(tester, app.widget);
 
-    await tester.tap(find.byTooltip('Família'));
+    await openHomeMenu(tester, 'Família');
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('Criança'));
@@ -56,7 +56,7 @@ void main() {
     final familyId = await seedFamily(app.db, uid: 'uid-ana', childNames: ['Bia']);
     await pumpSettled(tester, app.widget);
 
-    await tester.tap(find.byTooltip('Família'));
+    await openHomeMenu(tester, 'Família');
     await tester.pumpAndSettle();
 
     // Rola até o fim (a criança fica acima do FAB, com o padding inferior).

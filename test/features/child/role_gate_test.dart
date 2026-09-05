@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../support/fake_auth_repository.dart';
@@ -12,8 +13,9 @@ void main() {
     await seedFamily(app.db, uid: 'uid-ana', name: 'Família Silva');
     await pumpSettled(tester, app.widget);
 
-    expect(find.byTooltip('Família'), findsOneWidget);
     expect(find.byTooltip('Aprovações'), findsOneWidget);
+    expect(find.byTooltip('Mais'), findsOneWidget);
+    expect(find.widgetWithText(AppBar, 'Família Silva'), findsOneWidget);
   });
 
   testWidgets('criança logada cai no modo criança, sem telas de responsável',
