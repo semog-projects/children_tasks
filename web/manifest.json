@@ -1,6 +1,6 @@
 {
-    "name": "childrentasks",
-    "short_name": "childrentasks",
+    "name": "Children Tasks",
+    "short_name": "Children Tasks",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
