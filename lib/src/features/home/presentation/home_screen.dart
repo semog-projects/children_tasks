@@ -5,11 +5,13 @@ import '../../../common/child_avatar.dart';
 import '../../../common/pull_refresh.dart';
 import '../../../common/spacing.dart';
 import '../../../common/sync/sync_banner.dart';
+import '../../../data/models/member.dart';
 import '../../auth/application/auth_providers.dart';
 import '../../dashboard/presentation/dashboard_screen.dart';
 import '../../family/application/family_providers.dart';
 import '../../family/presentation/family_screen.dart';
 import '../../points/application/points_providers.dart';
+import '../../points/presentation/points_adjustment_dialog.dart';
 import '../../rewards/presentation/catalog_screen.dart';
 import '../../rewards/presentation/rewards_screen.dart';
 import '../../tasks/application/approval_providers.dart';
@@ -165,11 +167,7 @@ class HomeScreen extends ConsumerWidget {
                         for (final child in list)
                           Padding(
                             padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                            child: _ChildCard(
-                              childId: child.id,
-                              name: child.displayName,
-                              colorHex: child.avatarColor,
-                            ),
+                            child: _ChildCard(child: child),
                           ),
                       ],
                     ],
@@ -186,11 +184,13 @@ class HomeScreen extends ConsumerWidget {
 }
 
 class _ChildCard extends ConsumerWidget {
-  const _ChildCard({required this.childId, required this.name, this.colorHex});
+  const _ChildCard({required this.child});
 
-  final String childId;
-  final String name;
-  final String? colorHex;
+  final Member child;
+
+  String get childId => child.id;
+  String get name => child.displayName;
+  String? get colorHex => child.avatarColor;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -230,6 +230,20 @@ class _ChildCard extends ConsumerWidget {
                             CatalogScreen(memberId: childId, childName: name),
                       ),
                     ),
+                  ),
+                  PopupMenuButton<String>(
+                    tooltip: 'Mais ações de $name',
+                    onSelected: (action) {
+                      if (action == 'adjust') {
+                        PointsAdjustmentDialog.show(context, child);
+                      }
+                    },
+                    itemBuilder: (_) => const [
+                      PopupMenuItem(
+                        value: 'adjust',
+                        child: _MenuRow(Icons.tune, 'Ajustar pontos'),
+                      ),
+                    ],
                   ),
                 ],
               ),

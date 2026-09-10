@@ -156,17 +156,32 @@ class _EntryTile extends StatelessWidget {
     final (icon, label) = switch (entry.type) {
       LedgerEntryType.earn => (Icons.check_circle_outline, 'Tarefa aprovada'),
       LedgerEntryType.redeem => (Icons.card_giftcard, 'Recompensa resgatada'),
-      LedgerEntryType.adjustment => (Icons.tune, 'Ajuste manual'),
+      LedgerEntryType.adjustment => positive
+          ? (Icons.add_circle_outline, 'Pontos adicionados')
+          : (Icons.remove_circle_outline, 'Pontos descontados'),
     };
     final date = entry.createdAt;
+    final dateLabel = date == null
+        ? null
+        : '${date.day.toString().padLeft(2, '0')}/'
+            '${date.month.toString().padLeft(2, '0')}/${date.year}';
+    final note = entry.note?.trim();
 
     return ListTile(
+      isThreeLine: note != null && note.isNotEmpty,
       leading: Icon(icon),
       title: Text('$label · $childName'),
-      subtitle: date == null
-          ? null
-          : Text('${date.day.toString().padLeft(2, '0')}/'
-              '${date.month.toString().padLeft(2, '0')}/${date.year}'),
+      subtitle: (note == null || note.isEmpty)
+          ? (dateLabel == null ? null : Text(dateLabel))
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(note),
+                if (dateLabel != null)
+                  Text(dateLabel, style: theme.textTheme.bodySmall),
+              ],
+            ),
       trailing: Text(
         '${positive ? '+' : ''}${entry.points}',
         style: theme.textTheme.titleMedium?.copyWith(

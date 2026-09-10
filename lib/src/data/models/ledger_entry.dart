@@ -23,6 +23,7 @@ class LedgerEntry {
   const LedgerEntry({
     required this.id,
     required this.memberId,
+    this.memberUid,
     required this.type,
     required this.points,
     required this.sourceType,
@@ -34,6 +35,11 @@ class LedgerEntry {
 
   final String id;
   final String memberId;
+
+  /// `auth.uid` da criança, denormalizado para as queries dela (rules #34).
+  /// Presente quando a criança tem conta vinculada.
+  final String? memberUid;
+
   final LedgerEntryType type;
 
   /// Com sinal: `earn` > 0, `redeem` < 0.
@@ -50,6 +56,7 @@ class LedgerEntry {
     return LedgerEntry(
       id: doc.id,
       memberId: data['memberId'] as String? ?? '',
+      memberUid: data['memberUid'] as String?,
       type: LedgerEntryType.fromName(data['type'] as String?),
       points: (data['points'] as num?)?.toInt() ?? 0,
       sourceType: LedgerSourceType.fromName(data['sourceType'] as String?),
@@ -62,6 +69,7 @@ class LedgerEntry {
 
   static Map<String, dynamic> createData({
     required String memberId,
+    String? memberUid,
     required LedgerEntryType type,
     required int points,
     required LedgerSourceType sourceType,
@@ -71,6 +79,7 @@ class LedgerEntry {
   }) =>
       {
         'memberId': memberId,
+        'memberUid': ?memberUid,
         'type': type.name,
         'points': points,
         'sourceType': sourceType.name,

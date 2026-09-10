@@ -104,6 +104,27 @@ void main() {
     expect(entries.every((e) => e.type == LedgerEntryType.adjustment), isTrue);
   });
 
+  test('LedgerRepository: ajuste manual grava sinal, motivo e memberUid', () async {
+    final repo = LedgerRepository(refs);
+    await repo.addAdjustment(
+      'f1',
+      memberId: 'm1',
+      memberUid: 'kid-1',
+      points: -15,
+      createdByUid: 'g1',
+      note: 'Não guardou os brinquedos',
+    );
+
+    final entry = (await repo.watchForMember('f1', 'm1').first).single;
+    expect(entry.points, -15);
+    expect(entry.memberUid, 'kid-1');
+    expect(entry.note, 'Não guardou os brinquedos');
+    expect(entry.sourceType, LedgerSourceType.manual);
+
+    // A criança enxerga o desconto pelo próprio uid.
+    expect(await repo.watchBalanceByUid('f1', 'kid-1').first, -15);
+  });
+
   test('modelos: round-trip de Task com recorrência semanal', () async {
     final repo = TaskRepository(refs);
     final id = await repo.create(

@@ -51,10 +51,13 @@ class LedgerRepository {
         ));
   }
 
-  /// Lançamento avulso feito por um responsável (ajuste manual).
+  /// Lançamento avulso feito por um responsável (ajuste manual). `points` com
+  /// sinal: negativo desconta, positivo credita. `memberUid` (quando a criança
+  /// tem conta vinculada) deixa o lançamento visível no saldo/extrato dela.
   Future<void> addAdjustment(
     String familyId, {
     required String memberId,
+    String? memberUid,
     required int points,
     required String createdByUid,
     String? note,
@@ -62,6 +65,7 @@ class LedgerRepository {
     return _refs.ledger(familyId).add({
       ...LedgerEntry.createData(
         memberId: memberId,
+        memberUid: memberUid,
         type: LedgerEntryType.adjustment,
         points: points,
         sourceType: LedgerSourceType.manual,
