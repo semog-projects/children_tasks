@@ -216,6 +216,16 @@ test('ledger: points = 0 e createdByUid diferente do auth são rejeitados', asyn
   await assertFails(addDoc(ledger, { ...validLedger, createdByUid: 'alguem' }));
 });
 
+test('ledger: responsável cria desconto manual com motivo e memberUid', async () => {
+  const ledger = collection(guardianDb(), `families/${FAMILY}/ledger`);
+  await assertSucceeds(addDoc(ledger, {
+    ...validLedger,
+    points: -15,
+    memberUid: CHILD,
+    note: 'Não guardou os brinquedos',
+  }));
+});
+
 test('ledger: cliente não pode criar earn nem redeem (só a Function)', async () => {
   const ledger = collection(guardianDb(), `families/${FAMILY}/ledger`);
   await assertFails(addDoc(ledger, { ...validLedger, type: 'earn', sourceType: 'taskInstance' }));
