@@ -59,4 +59,26 @@ void main() {
     expect(find.text('Informe um número maior que zero.'), findsOneWidget);
     expect(find.text('O motivo é obrigatório.'), findsOneWidget);
   });
+
+  testWidgets('o diálogo não estoura com o teclado aberto', (tester) async {
+    final app = await buildTestApp(
+      auth: FakeAuthRepository(initialUser: FakeAuthRepository.user()),
+    );
+    await seedFamily(app.db, uid: 'uid-ana', childNames: ['Bia']);
+
+    await pumpSettled(tester, app.widget);
+    await tester.tap(find.byTooltip('Mais ações de Bia'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Ajustar pontos'));
+    await tester.pumpAndSettle();
+
+    // Simula o teclado virtual subindo: sem SingleChildScrollView o conteúdo
+    // do AlertDialog dava "BOTTOM OVERFLOWED" (pump lançaria a exceção).
+    tester.view.viewInsets = const FakeViewPadding(bottom: 900);
+    addTearDown(tester.view.reset);
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.widgetWithText(TextFormField, 'Pontos'), findsOneWidget);
+  });
 }
