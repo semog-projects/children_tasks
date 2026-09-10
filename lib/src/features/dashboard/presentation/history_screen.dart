@@ -155,7 +155,10 @@ class _EntryTile extends StatelessWidget {
     final positive = entry.points > 0;
     final (icon, label) = switch (entry.type) {
       LedgerEntryType.earn => (Icons.check_circle_outline, 'Tarefa aprovada'),
-      LedgerEntryType.redeem => (Icons.card_giftcard, 'Recompensa resgatada'),
+      LedgerEntryType.redeem =>
+        entry.sourceType == LedgerSourceType.cashOut
+            ? (Icons.payments_outlined, 'Troca por dinheiro')
+            : (Icons.card_giftcard, 'Recompensa resgatada'),
       LedgerEntryType.adjustment => positive
           ? (Icons.add_circle_outline, 'Pontos adicionados')
           : (Icons.remove_circle_outline, 'Pontos descontados'),

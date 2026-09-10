@@ -1,9 +1,11 @@
 import 'package:childrentasks/src/data/firestore_refs.dart';
+import 'package:childrentasks/src/data/models/cash_out.dart';
 import 'package:childrentasks/src/data/models/family.dart';
 import 'package:childrentasks/src/data/models/ledger_entry.dart';
 import 'package:childrentasks/src/data/models/member.dart';
 import 'package:childrentasks/src/data/models/reward.dart';
 import 'package:childrentasks/src/data/models/task.dart';
+import 'package:childrentasks/src/data/repositories/cash_out_repository.dart';
 import 'package:childrentasks/src/data/repositories/family_repository.dart';
 import 'package:childrentasks/src/data/repositories/ledger_repository.dart';
 import 'package:childrentasks/src/data/repositories/member_repository.dart';
@@ -123,6 +125,48 @@ void main() {
 
     // A criança enxerga o desconto pelo próprio uid.
     expect(await repo.watchBalanceByUid('f1', 'kid-1').first, -15);
+  });
+
+  test('CashOutRepository: cancelar / recusar / marcar pago e a fila', () async {
+    final repo = CashOutRepository(refs);
+    Future<String> seed(String memberId, String status) async {
+      final ref = await refs.cashOuts('f1').add({
+        'memberId': memberId,
+        'memberUid': 'kid-$memberId',
+        'points': 125,
+        'amountCents': 200,
+        'rateCents': 1.6,
+        'status': status,
+      });
+      return ref.id;
+    }
+
+    final req = await seed('m1', CashOutStatus.requested.name);
+    final appr = await seed('m1', CashOutStatus.approved.name);
+    await seed('m2', CashOutStatus.paid.name);
+
+    // A fila mostra só requested + approved.
+    final pending = await repo.watchPending('f1').first;
+    expect(pending.map((c) => c.status).toSet(),
+        {CashOutStatus.requested, CashOutStatus.approved});
+
+    await repo.reject('f1', req, 'g1', note: 'Semana que vem');
+    await repo.markPaid('f1', appr, 'g1');
+
+    final byMember = await repo.watchForMember('f1', 'm1').first;
+    final rejected = byMember.firstWhere((c) => c.id == req);
+    expect(rejected.status, CashOutStatus.rejected);
+    expect(rejected.note, 'Semana que vem');
+    expect(byMember.firstWhere((c) => c.id == appr).status, CashOutStatus.paid);
+
+    final other = await seed('m1', CashOutStatus.requested.name);
+    await repo.cancel('f1', other);
+    expect(
+      (await repo.watchForMemberUid('f1', 'kid-m1').first)
+          .firstWhere((c) => c.id == other)
+          .status,
+      CashOutStatus.canceled,
+    );
   });
 
   test('modelos: round-trip de Task com recorrência semanal', () async {

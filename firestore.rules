@@ -86,7 +86,10 @@ service cloud.firestore {
         && request.auth.uid in request.resource.data.guardianUids
         && request.resource.data.guardianUids.size() >= 1
         && request.resource.data.guardians is list
-        && isNonEmptyString(request.resource.data.name, 60);
+        && isNonEmptyString(request.resource.data.name, 60)
+        && (!('pointValueCents' in request.resource.data)
+            || (request.resource.data.pointValueCents is number
+                && request.resource.data.pointValueCents > 0));
 
       allow delete: if false;
 
@@ -191,6 +194,32 @@ service cloud.firestore {
           && request.resource.data.memberId == resource.data.memberId
           && request.resource.data.cost == resource.data.cost
           && request.resource.data.status in ['requested', 'delivered', 'canceled'];
+      }
+
+      // Câmbio de pontos por dinheiro (#66): criado só pelas Cloud Functions
+      // `requestCashOut` / `approveCashOut`. O responsável recusa um pedido
+      // ou marca como pago; a criança cancela o próprio enquanto pendente.
+      match /cashOuts/{cashOutId} {
+        allow read: if isGuardian(familyId)
+          || (isChildOf(familyId) && ownsChildDoc(resource.data));
+        allow create, delete: if false;
+        allow update: if
+          (isGuardian(familyId)
+            && request.resource.data.memberId == resource.data.memberId
+            && request.resource.data.points == resource.data.points
+            && request.resource.data.amountCents == resource.data.amountCents
+            && request.resource.data.rateCents == resource.data.rateCents
+            && (
+              (resource.data.status == 'requested'
+                && request.resource.data.status == 'rejected')
+              || (resource.data.status == 'approved'
+                && request.resource.data.status == 'paid')
+            ))
+          || (isChildOf(familyId) && ownsChildDoc(resource.data)
+            && resource.data.status == 'requested'
+            && request.resource.data.status == 'canceled'
+            && request.resource.data.points == resource.data.points
+            && request.resource.data.amountCents == resource.data.amountCents);
       }
 
       // Append-only: sem update/delete pelo cliente.

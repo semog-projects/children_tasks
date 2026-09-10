@@ -453,3 +453,97 @@ test('criança não edita a família', async () => {
     updateDoc(doc(childDb(), 'families', FAMILY), { name: 'Nova' }),
   );
 });
+
+// ---- câmbio (#66) ------------------------------------------------------
+
+test('família: responsável ajusta a cotação (> 0); zero é rejeitado', async () => {
+  const famRef = doc(guardianDb(), 'families', FAMILY);
+  await assertSucceeds(updateDoc(famRef, { pointValueCents: 2 }));
+  await assertFails(updateDoc(famRef, { pointValueCents: 0 }));
+  await assertFails(updateDoc(famRef, { pointValueCents: -1 }));
+  await assertFails(
+    updateDoc(doc(childDb(), 'families', FAMILY), { pointValueCents: 5 }),
+  );
+});
+
+test('cashOuts: cliente não cria; a Function cria', async () => {
+  const col = `families/${FAMILY}/cashOuts`;
+  await assertFails(
+    setDoc(doc(guardianDb(), `${col}/c-new`), {
+      memberId: 'm-bia',
+      points: 125,
+      amountCents: 200,
+      rateCents: 1.6,
+      status: 'requested',
+    }),
+  );
+});
+
+async function seedCashOut(id, over = {}) {
+  await testEnv.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), `families/${FAMILY}/cashOuts/${id}`), {
+      memberId: 'm-bia',
+      memberUid: CHILD,
+      points: 125,
+      amountCents: 200,
+      rateCents: 1.6,
+      status: 'requested',
+      ...over,
+    });
+  });
+}
+
+test('cashOuts: responsável recusa um requested e paga um approved', async () => {
+  await seedCashOut('c1');
+  await seedCashOut('c2', { status: 'approved' });
+
+  await assertSucceeds(
+    updateDoc(doc(guardianDb(), `families/${FAMILY}/cashOuts/c1`), {
+      status: 'rejected',
+      note: 'Semana que vem',
+    }),
+  );
+  await assertSucceeds(
+    updateDoc(doc(guardianDb(), `families/${FAMILY}/cashOuts/c2`), {
+      status: 'paid',
+    }),
+  );
+});
+
+test('cashOuts: responsável não pula requested -> paid nem mexe no valor', async () => {
+  await seedCashOut('c3');
+  await assertFails(
+    updateDoc(doc(guardianDb(), `families/${FAMILY}/cashOuts/c3`), {
+      status: 'paid',
+    }),
+  );
+  await assertFails(
+    updateDoc(doc(guardianDb(), `families/${FAMILY}/cashOuts/c3`), {
+      status: 'rejected',
+      points: 5,
+    }),
+  );
+});
+
+test('cashOuts: criança cancela o próprio requested, não o do irmão', async () => {
+  await seedCashOut('c-bia');
+  await seedCashOut('c-leo', { memberId: 'm-leo', memberUid: 'uid-leo' });
+
+  await assertSucceeds(
+    updateDoc(doc(childDb(), `families/${FAMILY}/cashOuts/c-bia`), {
+      status: 'canceled',
+    }),
+  );
+  await assertFails(
+    updateDoc(doc(childDb(), `families/${FAMILY}/cashOuts/c-leo`), {
+      status: 'canceled',
+    }),
+  );
+  // criança não aprova
+  await seedCashOut('c-bia2');
+  await assertFails(
+    updateDoc(doc(childDb(), `families/${FAMILY}/cashOuts/c-bia2`), {
+      status: 'approved',
+    }),
+  );
+});

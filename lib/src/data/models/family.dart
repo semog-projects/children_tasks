@@ -37,9 +37,13 @@ class Family {
     this.guardians = const [],
     this.childUids = const [],
     required this.timezone,
+    this.pointValueCents = defaultPointValueCents,
     this.createdAt,
     this.updatedAt,
   });
+
+  /// Cotação padrão: R$ 0,016 por ponto (100 pts = R$ 1,60).
+  static const double defaultPointValueCents = 1.6;
 
   final String id;
   final String name;
@@ -58,6 +62,10 @@ class Family {
 
   /// Fuso IANA, ex.: `America/Sao_Paulo`. Usado na geração de recorrentes.
   final String timezone;
+
+  /// Quanto vale um ponto no câmbio, em centavos de BRL (issue #66). Editável
+  /// pelo responsável na tela de Família; a Cloud Function lê deste doc.
+  final double pointValueCents;
 
   final DateTime? createdAt;
   final DateTime? updatedAt;
@@ -83,6 +91,8 @@ class Family {
       childUids:
           (data['childUids'] as List<dynamic>? ?? const []).cast<String>(),
       timezone: data['timezone'] as String? ?? 'America/Sao_Paulo',
+      pointValueCents:
+          (data['pointValueCents'] as num?)?.toDouble() ?? defaultPointValueCents,
       createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
       updatedAt: (data['updatedAt'] as Timestamp?)?.toDate(),
     );
@@ -103,6 +113,7 @@ class Family {
         'guardianUids': guardianUids,
         'guardians': guardians.map((g) => g.toMap()).toList(),
         'timezone': timezone,
+        'pointValueCents': pointValueCents,
       };
 
   Family copyWith({
@@ -111,6 +122,7 @@ class Family {
     List<GuardianRef>? guardians,
     List<String>? childUids,
     String? timezone,
+    double? pointValueCents,
   }) =>
       Family(
         id: id,
@@ -119,6 +131,7 @@ class Family {
         guardians: guardians ?? this.guardians,
         childUids: childUids ?? this.childUids,
         timezone: timezone ?? this.timezone,
+        pointValueCents: pointValueCents ?? this.pointValueCents,
         createdAt: createdAt,
         updatedAt: updatedAt,
       );

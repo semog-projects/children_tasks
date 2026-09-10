@@ -7,6 +7,8 @@
  *   (aprovação / rejeição) (#11/#14/#35)
  * - redeemReward: callable, resgate transacional (responsável ou criança) (#12/#35)
  * - onRedemptionWritten: notifica responsável (resgatado) / criança (entregue)
+ * - requestCashOut/approveCashOut: callable, câmbio de pontos por dinheiro (#66)
+ * - onCashOutWritten: notifica responsável (pedido) / criança (aprovado/pago/recusado)
  * - sendDailyReminders: agendada, lembrete diário de tarefas pendentes (#14)
  * - createFamilyInvite/acceptFamilyInvite: callable, convite e vínculo de
  *   criança / responsável à família (#33)
@@ -27,6 +29,11 @@ import {
   listOpenInvites,
   revokeInvite,
 } from "./family/invites.js";
+import {
+  approveCashOut as approveCashOutTx,
+  CashOutError,
+  requestCashOut as requestCashOutTx,
+} from "./cashout/cashout.js";
 import { notifyGuardians, notifyMember } from "./notifications/messaging.js";
 import { sendDueReminders } from "./notifications/reminders.js";
 import {
@@ -220,6 +227,73 @@ export const onRedemptionWritten = onDocumentWritten(
   },
 );
 
+function formatBrlCents(cents: number): string {
+  const reais = Math.trunc(cents / 100);
+  const rest = Math.abs(cents % 100)
+    .toString()
+    .padStart(2, "0");
+  return `R$ ${reais},${rest}`;
+}
+
+/**
+ * Câmbio de pontos por dinheiro (#66):
+ * - pedido criado (`requested`) -> notifica os responsáveis;
+ * - `requested -> approved` -> notifica a criança ("aprovado");
+ * - `approved -> paid` -> notifica a criança ("pago");
+ * - `requested -> rejected` -> notifica a criança ("recusado" + motivo).
+ */
+export const onCashOutWritten = onDocumentWritten(
+  {
+    document: "families/{familyId}/cashOuts/{cashOutId}",
+    region: REGION,
+  },
+  async (event) => {
+    const { familyId, cashOutId } = event.params;
+    const before = event.data?.before.data();
+    const after = event.data?.after.data();
+    if (!after) return;
+    const db = getFirestore();
+    const memberId = after.memberId as string;
+    const amount = formatBrlCents((after.amountCents as number | undefined) ?? 0);
+    const points = (after.points as number | undefined) ?? 0;
+
+    if (!before) {
+      const name = await childName(db, familyId, memberId);
+      await notifyGuardians(db, familyId, "cashOut", {
+        title: "Pedido de troca por dinheiro",
+        body: `${name} quer trocar ${points} pontos por ${amount}.`,
+        data: { type: "cashOut", cashOutId },
+      });
+      return;
+    }
+
+    if (before.status === after.status) return;
+
+    if (after.status === "approved") {
+      await notifyMember(db, familyId, memberId, "cashOut", {
+        title: "Troca aprovada 💸",
+        body: `${amount} a caminho (−${points} pontos).`,
+        data: { type: "cashOut", cashOutId },
+      });
+    } else if (after.status === "paid") {
+      await notifyMember(db, familyId, memberId, "cashOut", {
+        title: "Dinheiro pago 🎉",
+        body: `${amount} já é seu!`,
+        data: { type: "cashOut", cashOutId },
+      });
+    } else if (after.status === "rejected") {
+      const note = (after.note as string | undefined)?.trim();
+      await notifyMember(db, familyId, memberId, "cashOut", {
+        title: "Troca recusada",
+        body: note
+          ? `Seu pedido de ${amount} foi recusado: ${note}`
+          : `Seu pedido de ${amount} foi recusado.`,
+        data: { type: "cashOut", cashOutId },
+      });
+    }
+  },
+);
+
 /**
  * De hora em hora: para cada responsável, se a hora local da família bate com
  * o horário do lembrete configurado e há tarefas pendentes hoje, envia o
@@ -369,6 +443,69 @@ export const redeemReward = onCall({ region: REGION }, async (request) => {
     });
   } catch (error) {
     if (error instanceof RedeemError) {
+      throw new HttpsError(error.code, error.message);
+    }
+    throw error;
+  }
+});
+
+/**
+ * Câmbio (#66): a criança (ou o responsável) pede a troca de N pontos por
+ * dinheiro. Só cria o pedido `requested` — o débito é na aprovação.
+ */
+export const requestCashOut = onCall({ region: REGION }, async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid) throw new HttpsError("unauthenticated", "Faça login.");
+
+  const familyId = request.data?.familyId as string | undefined;
+  const points = request.data?.points as number | undefined;
+  if (!familyId || typeof points !== "number") {
+    throw new HttpsError("invalid-argument", "familyId e points são obrigatórios.");
+  }
+
+  const db = getFirestore();
+  try {
+    const target = await resolveRedeemTarget(
+      db,
+      familyId,
+      uid,
+      request.data?.memberId as string | undefined,
+    );
+    return await requestCashOutTx(db, {
+      familyId,
+      memberId: target.memberId,
+      memberUid: target.memberUid,
+      points,
+      requestedByUid: uid,
+    });
+  } catch (error) {
+    if (error instanceof CashOutError || error instanceof RedeemError) {
+      throw new HttpsError(error.code, error.message);
+    }
+    throw error;
+  }
+});
+
+/**
+ * Câmbio (#66): o responsável aprova um pedido `requested` — débito
+ * transacional de pontos (sem saldo negativo) e status `approved`.
+ */
+export const approveCashOut = onCall({ region: REGION }, async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid) throw new HttpsError("unauthenticated", "Faça login.");
+
+  const familyId = request.data?.familyId as string | undefined;
+  const cashOutId = request.data?.cashOutId as string | undefined;
+  if (!familyId || !cashOutId) {
+    throw new HttpsError("invalid-argument", "familyId e cashOutId são obrigatórios.");
+  }
+
+  const db = getFirestore();
+  await assertGuardian(db, familyId, uid);
+  try {
+    return await approveCashOutTx(db, { familyId, cashOutId, deciderUid: uid });
+  } catch (error) {
+    if (error instanceof CashOutError) {
       throw new HttpsError(error.code, error.message);
     }
     throw error;
