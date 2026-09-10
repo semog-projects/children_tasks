@@ -84,21 +84,21 @@ class _PointsAdjustmentDialogState
       title: Text('Ajustar pontos de ${widget.child.displayName}'),
       content: Form(
         key: _formKey,
-        child: Column(
+        child: SingleChildScrollView(
+          child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             SegmentedButton<bool>(
+              showSelectedIcon: false,
               segments: const [
                 ButtonSegment(
                   value: true,
                   label: Text('Descontar'),
-                  icon: Icon(Icons.remove),
                 ),
                 ButtonSegment(
                   value: false,
                   label: Text('Adicionar'),
-                  icon: Icon(Icons.add),
                 ),
               ],
               selected: {_remove},
@@ -138,6 +138,7 @@ class _PointsAdjustmentDialogState
                   (v ?? '').trim().isEmpty ? 'O motivo é obrigatório.' : null,
             ),
           ],
+          ),
         ),
       ),
       actions: [

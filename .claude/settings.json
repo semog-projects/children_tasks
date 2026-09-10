@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(flutter analyze:*)",
+      "Bash(flutter test:*)",
+      "Bash(env -u GITHUB_TOKEN gh pr checks:*)",
+      "Bash(env -u GITHUB_TOKEN gh pr view:*)",
+      "Bash(env -u GITHUB_TOKEN gh run view:*)",
+      "Bash(env -u GITHUB_TOKEN gh run list:*)",
+      "Bash(env -u GITHUB_TOKEN gh run watch:*)",
+      "Bash(env -u GITHUB_TOKEN gh issue view:*)",
+      "Bash(env -u GITHUB_TOKEN gh issue list:*)",
+      "Bash(env -u GITHUB_TOKEN gh project item-list:*)",
+      "Bash(env -u GITHUB_TOKEN gh project field-list:*)",
+      "Bash(env -u GITHUB_TOKEN gh project list:*)",
+      "Bash(env -u GITHUB_TOKEN gh project view:*)",
+      "Bash(env -u GITHUB_TOKEN gh repo view:*)",
+      "Bash(env -u GITHUB_TOKEN gh auth status:*)",
+      "mcp__harness__harness_board",
+      "mcp__harness__harness_ping",
+      "mcp__github__list_issues",
+      "mcp__github__issue_read"
+    ]
+  }
+}
