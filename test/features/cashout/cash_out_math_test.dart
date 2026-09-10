@@ -53,4 +53,13 @@ void main() {
     expect(formatBrlCents(320), r'R$ 3,20');
     expect(formatBrlCents(1005), r'R$ 10,05');
   });
+
+  test('centsFromText aceita cru, formatado e vazio', () {
+    expect(centsFromText('200'), 200);
+    expect(centsFromText(r'R$ 2,00'), 200);
+    expect(centsFromText('2,00'), 200);
+    expect(centsFromText(''), 0);
+    expect(centsFromText(r'R$ '), 0);
+    expect(centsFromText(r'R$ 10,05'), 1005);
+  });
 }
