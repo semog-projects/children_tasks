@@ -33,8 +33,27 @@ class CashOutScreen extends ConsumerStatefulWidget {
   ConsumerState<CashOutScreen> createState() => _CashOutScreenState();
 }
 
+/// Reformata o que a criança digita como moeda: cada dígito entra pelos
+/// centavos (`2` → R$ 0,02, `200` → R$ 2,00), com o cursor sempre no fim.
+class _BrlCentsFormatter extends TextInputFormatter {
+  const _BrlCentsFormatter();
+
+  static const int _maxCents = 9999999; // R$ 99.999,99
+
+  @override
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue, TextEditingValue newValue) {
+    final cents = centsFromText(newValue.text).clamp(0, _maxCents).toInt();
+    if (cents == 0) return const TextEditingValue();
+    final text = formatBrlCents(cents);
+    return TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: text.length),
+    );
+  }
+}
+
 class _CashOutScreenState extends ConsumerState<CashOutScreen> {
-  /// Só dígitos — interpretados como centavos (ex.: "200" = R$ 2,00).
   final _amount = TextEditingController();
 
   @override
@@ -43,7 +62,7 @@ class _CashOutScreenState extends ConsumerState<CashOutScreen> {
     super.dispose();
   }
 
-  int get _wantCents => int.tryParse(_amount.text) ?? 0;
+  int get _wantCents => centsFromText(_amount.text);
 
   Member _member() {
     final children =
@@ -139,16 +158,14 @@ class _CashOutScreenState extends ConsumerState<CashOutScreen> {
               enabled: !busy,
               autofocus: false,
               keyboardType: TextInputType.number,
-              inputFormatters: [
-                FilteringTextInputFormatter.digitsOnly,
-                LengthLimitingTextInputFormatter(7),
-              ],
+              inputFormatters: const [_BrlCentsFormatter()],
               onChanged: (_) => setState(() {}),
+              style: theme.textTheme.headlineSmall,
               decoration: const InputDecoration(
                 labelText: 'Valor em reais',
-                hintText: 'digite os centavos, ex: 200 = R\$ 2,00',
+                hintText: 'R\$ 0,00',
+                helperText: 'Cada dígito entra pelos centavos: 200 = R\$ 2,00',
                 border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.attach_money),
               ),
             ),
             const Gap.sm(),

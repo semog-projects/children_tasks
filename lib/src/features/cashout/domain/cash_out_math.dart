@@ -33,3 +33,10 @@ String formatBrlCents(int cents) {
   final rest = (cents % 100).toString().padLeft(2, '0');
   return 'R\$ $reais,$rest';
 }
+
+/// Lê os centavos de um texto de campo de moeda (`R$ 2,00`, `200`, `2,00` → 200).
+int centsFromText(String text) {
+  final digits = text.replaceAll(RegExp(r'[^0-9]'), '');
+  if (digits.isEmpty) return 0;
+  return int.tryParse(digits) ?? 0;
+}

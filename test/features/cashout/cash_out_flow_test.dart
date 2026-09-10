@@ -76,6 +76,7 @@ void main() {
     await tester.enterText(
         find.widgetWithText(TextField, 'Valor em reais'), '200');
     await tester.pumpAndSettle();
+    expect(find.text(r'R$ 2,00'), findsWidgets); // campo formatado como moeda
     expect(find.text('Custa 125 pontos'), findsOneWidget);
     expect(find.text('Saldo insuficiente.'), findsOneWidget);
     final blocked = tester.widget<FilledButton>(
