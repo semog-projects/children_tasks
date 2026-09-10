@@ -7,6 +7,9 @@ import '../../../common/spacing.dart';
 import '../../../common/sync/sync_banner.dart';
 import '../../../data/models/member.dart';
 import '../../auth/application/auth_providers.dart';
+import '../../cashout/application/cashout_providers.dart';
+import '../../cashout/presentation/cash_out_requests_screen.dart';
+import '../../cashout/presentation/cash_out_screen.dart';
 import '../../dashboard/presentation/dashboard_screen.dart';
 import '../../family/application/family_providers.dart';
 import '../../family/presentation/family_screen.dart';
@@ -20,7 +23,7 @@ import '../../tasks/presentation/approvals_screen.dart';
 import '../../tasks/presentation/tasks_screen.dart';
 import '../../tasks/presentation/today_screen.dart';
 
-enum _HomeMenu { tasks, rewards, dashboard, family, signOut }
+enum _HomeMenu { tasks, rewards, cashOuts, dashboard, family, signOut }
 
 class _MenuRow extends StatelessWidget {
   const _MenuRow(this.icon, this.label);
@@ -52,6 +55,9 @@ class HomeScreen extends ConsumerWidget {
         nav.push(MaterialPageRoute<void>(builder: (_) => const TasksScreen()));
       case _HomeMenu.rewards:
         nav.push(MaterialPageRoute<void>(builder: (_) => const RewardsScreen()));
+      case _HomeMenu.cashOuts:
+        nav.push(MaterialPageRoute<void>(
+            builder: (_) => const CashOutRequestsScreen()));
       case _HomeMenu.dashboard:
         nav.push(
             MaterialPageRoute<void>(builder: (_) => const DashboardScreen()));
@@ -67,6 +73,8 @@ class HomeScreen extends ConsumerWidget {
     final family = ref.watch(currentFamilyProvider).asData?.value;
     final children = ref.watch(familyChildrenProvider);
     final pendingCount = ref.watch(pendingApprovalsProvider).asData?.value.length ?? 0;
+    final cashOutCount =
+        ref.watch(pendingCashOutsProvider).asData?.value.length ?? 0;
 
     return Scaffold(
       appBar: AppBar(
@@ -91,25 +99,34 @@ class HomeScreen extends ConsumerWidget {
           PopupMenuButton<_HomeMenu>(
             tooltip: 'Mais',
             onSelected: (item) => _onMenu(context, ref, item),
-            itemBuilder: (_) => const [
-              PopupMenuItem(
+            itemBuilder: (_) => [
+              const PopupMenuItem(
                 value: _HomeMenu.tasks,
                 child: _MenuRow(Icons.checklist_rounded, 'Definição de tarefas'),
               ),
-              PopupMenuItem(
+              const PopupMenuItem(
                 value: _HomeMenu.rewards,
                 child: _MenuRow(Icons.card_giftcard, 'Recompensas'),
               ),
               PopupMenuItem(
+                value: _HomeMenu.cashOuts,
+                child: _MenuRow(
+                  Icons.savings_outlined,
+                  cashOutCount > 0
+                      ? 'Trocas por dinheiro ($cashOutCount)'
+                      : 'Trocas por dinheiro',
+                ),
+              ),
+              const PopupMenuItem(
                 value: _HomeMenu.dashboard,
                 child: _MenuRow(Icons.insights, 'Painel'),
               ),
-              PopupMenuItem(
+              const PopupMenuItem(
                 value: _HomeMenu.family,
                 child: _MenuRow(Icons.group, 'Família'),
               ),
-              PopupMenuDivider(),
-              PopupMenuItem(
+              const PopupMenuDivider(),
+              const PopupMenuItem(
                 value: _HomeMenu.signOut,
                 child: _MenuRow(Icons.logout, 'Sair da conta'),
               ),
@@ -236,12 +253,26 @@ class _ChildCard extends ConsumerWidget {
                     onSelected: (action) {
                       if (action == 'adjust') {
                         PointsAdjustmentDialog.show(context, child);
+                      } else if (action == 'cashout') {
+                        Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => CashOutScreen(
+                              memberId: child.id,
+                              childName: child.displayName,
+                            ),
+                          ),
+                        );
                       }
                     },
                     itemBuilder: (_) => const [
                       PopupMenuItem(
                         value: 'adjust',
                         child: _MenuRow(Icons.tune, 'Ajustar pontos'),
+                      ),
+                      PopupMenuItem(
+                        value: 'cashout',
+                        child: _MenuRow(
+                            Icons.savings_outlined, 'Trocar por dinheiro'),
                       ),
                     ],
                   ),

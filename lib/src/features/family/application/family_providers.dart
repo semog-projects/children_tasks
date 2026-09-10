@@ -98,6 +98,18 @@ class FamilyController extends AsyncNotifier<void> {
     );
   }
 
+  /// Cotação do câmbio, em centavos de BRL por ponto (issue #66).
+  Future<void> setPointValueCents(double cents) async {
+    final family = ref.read(currentFamilyProvider).asData?.value;
+    if (family == null || cents <= 0) return;
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(
+      () => ref
+          .read(familyRepositoryProvider)
+          .update(family.copyWith(pointValueCents: cents)),
+    );
+  }
+
   /// Mantém o nome/foto do responsável logado atualizado no doc da família.
   Future<void> healOwnProfile() async {
     final user = ref.read(currentUserProvider);

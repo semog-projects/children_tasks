@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../app/firebase/firebase_providers.dart';
 import 'firestore_refs.dart';
+import 'repositories/cash_out_repository.dart';
 import 'repositories/family_repository.dart';
 import 'repositories/ledger_repository.dart';
 import 'repositories/member_repository.dart';
@@ -40,4 +41,8 @@ final redemptionRepositoryProvider = Provider<RedemptionRepository>((ref) {
 
 final ledgerRepositoryProvider = Provider<LedgerRepository>((ref) {
   return LedgerRepository(ref.watch(firestoreRefsProvider));
+});
+
+final cashOutRepositoryProvider = Provider<CashOutRepository>((ref) {
+  return CashOutRepository(ref.watch(firestoreRefsProvider));
 });
