@@ -18,17 +18,23 @@ class PointsChart extends StatelessWidget {
     final theme = Theme.of(context);
     final maxY = days.fold<int>(0, (m, d) => d.total > m ? d.total : m);
     final axisMax = (maxY <= 0 ? 10 : ((maxY / 10).ceil() * 10)).toDouble();
+    // O rótulo do eixo Y no topo (axisMax) é centralizado pelo fl_chart sobre
+    // a própria linha de grade — sem folga, metade do texto desenha acima do
+    // limite do gráfico e sobrepõe o título. `maxY` maior que `axisMax`
+    // empurra essa linha/rótulo pra baixo do topo, sem mudar os valores
+    // mostrados (grade/rótulos continuam calculados a partir de `axisMax`).
+    final chartMaxY = axisMax * 1.2;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('Pontos ganhos por dia', style: theme.textTheme.titleSmall),
-        const SizedBox(height: 12),
+        const SizedBox(height: 20),
         SizedBox(
           height: 180,
           child: BarChart(
             BarChartData(
-              maxY: axisMax,
+              maxY: chartMaxY,
               alignment: BarChartAlignment.spaceBetween,
               barTouchData: BarTouchData(
                 touchTooltipData: BarTouchTooltipData(
