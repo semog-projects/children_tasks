@@ -562,6 +562,24 @@ test('família: responsável ajusta a taxa/carência da poupança; valores invá
   );
 });
 
+test('família: responsável liga/desliga funcionalidades; criança não', async () => {
+  await assertSucceeds(
+    updateDoc(doc(guardianDb(), 'families', FAMILY), {
+      disabledFeatures: ['cashOut', 'investment'],
+    }),
+  );
+  await assertFails(
+    updateDoc(doc(guardianDb(), 'families', FAMILY), {
+      disabledFeatures: 'cashOut', // não é lista
+    }),
+  );
+  await assertFails(
+    updateDoc(doc(childDb(), 'families', FAMILY), {
+      disabledFeatures: ['rewards'],
+    }),
+  );
+});
+
 async function seedInvestReq(id, over = {}) {
   await testEnv.withSecurityRulesDisabled(async (ctx) => {
     await setDoc(

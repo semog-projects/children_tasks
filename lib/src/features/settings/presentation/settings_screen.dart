@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../notifications/presentation/notifications_settings_screen.dart';
 import 'appearance_screen.dart';
+import 'features_screen.dart';
 
 /// Hub de ajustes do app (responsável). Agrupa notificações e aparência.
 class SettingsScreen extends StatelessWidget {
@@ -29,6 +30,15 @@ class SettingsScreen extends StatelessWidget {
             trailing: const Icon(Icons.chevron_right),
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute<void>(builder: (_) => const AppearanceScreen()),
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.tune),
+            title: const Text('Funcionalidades'),
+            subtitle: const Text('Ligar ou desligar recursos do app'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const FeaturesScreen()),
             ),
           ),
         ],

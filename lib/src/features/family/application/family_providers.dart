@@ -48,6 +48,13 @@ final currentFamilyIdProvider = Provider<String>((ref) {
   return family.id;
 });
 
+/// Se uma funcionalidade está ligada para a família atual (issue #75).
+/// Enquanto a família carrega, assume ligada.
+final featureEnabledProvider = Provider.family<bool, AppFeature>((ref, feature) {
+  final family = ref.watch(currentFamilyProvider).asData?.value;
+  return family?.isEnabled(feature) ?? true;
+});
+
 /// Crianças da família atual.
 final familyChildrenProvider = StreamProvider<List<Member>>((ref) {
   final family = ref.watch(currentFamilyProvider).asData?.value;
@@ -125,6 +132,24 @@ class FamilyController extends AsyncNotifier<void> {
             investmentWeeklyRatePct: weeklyRatePct,
             investmentGraceDays: graceDays,
           )),
+    );
+  }
+
+  /// Liga/desliga uma funcionalidade para a família (issue #75).
+  Future<void> setFeatureEnabled(AppFeature feature, bool enabled) async {
+    final family = ref.read(currentFamilyProvider).asData?.value;
+    if (family == null) return;
+    final next = {...family.disabledFeatures};
+    if (enabled) {
+      next.remove(feature);
+    } else {
+      next.add(feature);
+    }
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(
+      () => ref
+          .read(familyRepositoryProvider)
+          .update(family.copyWith(disabledFeatures: next)),
     );
   }
 
