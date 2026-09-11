@@ -89,7 +89,13 @@ service cloud.firestore {
         && isNonEmptyString(request.resource.data.name, 60)
         && (!('pointValueCents' in request.resource.data)
             || (request.resource.data.pointValueCents is number
-                && request.resource.data.pointValueCents > 0));
+                && request.resource.data.pointValueCents > 0))
+        && (!('investmentWeeklyRatePct' in request.resource.data)
+            || (request.resource.data.investmentWeeklyRatePct is number
+                && request.resource.data.investmentWeeklyRatePct > 0))
+        && (!('investmentGraceDays' in request.resource.data)
+            || (request.resource.data.investmentGraceDays is int
+                && request.resource.data.investmentGraceDays >= 0));
 
       allow delete: if false;
 
@@ -220,6 +226,33 @@ service cloud.firestore {
             && request.resource.data.status == 'canceled'
             && request.resource.data.points == resource.data.points
             && request.resource.data.amountCents == resource.data.amountCents);
+      }
+
+      // Poupança (#73): lotes criados/apagados só pela Function `approveInvestment`.
+      match /investments/{investMemberId}/lots/{lotId} {
+        allow read: if isGuardian(familyId)
+          || (isChildOf(familyId) && ownsChildDoc(resource.data));
+        allow write: if false;
+      }
+
+      // Pedidos de poupança: criados só pela Function `requestInvestment`.
+      // O responsável recusa; a criança cancela o próprio enquanto pendente.
+      match /investmentRequests/{reqId} {
+        allow read: if isGuardian(familyId)
+          || (isChildOf(familyId) && ownsChildDoc(resource.data));
+        allow create, delete: if false;
+        allow update: if
+          (isGuardian(familyId)
+            && request.resource.data.memberId == resource.data.memberId
+            && request.resource.data.kind == resource.data.kind
+            && request.resource.data.get('points', 0) == resource.data.get('points', 0)
+            && resource.data.status == 'requested'
+            && request.resource.data.status == 'rejected')
+          || (isChildOf(familyId) && ownsChildDoc(resource.data)
+            && resource.data.status == 'requested'
+            && request.resource.data.status == 'canceled'
+            && request.resource.data.memberId == resource.data.memberId
+            && request.resource.data.kind == resource.data.kind);
       }
 
       // Append-only: sem update/delete pelo cliente.

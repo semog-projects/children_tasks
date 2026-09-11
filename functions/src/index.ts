@@ -9,6 +9,8 @@
  * - onRedemptionWritten: notifica responsável (resgatado) / criança (entregue)
  * - requestCashOut/approveCashOut: callable, câmbio de pontos por dinheiro (#66)
  * - onCashOutWritten: notifica responsável (pedido) / criança (aprovado/pago/recusado)
+ * - requestInvestment/approveInvestment: callable, poupança que rende (#73)
+ * - onInvestmentRequestWritten: notifica responsável (pedido) / criança (decisão)
  * - sendDailyReminders: agendada, lembrete diário de tarefas pendentes (#14)
  * - createFamilyInvite/acceptFamilyInvite: callable, convite e vínculo de
  *   criança / responsável à família (#33)
@@ -34,6 +36,11 @@ import {
   CashOutError,
   requestCashOut as requestCashOutTx,
 } from "./cashout/cashout.js";
+import {
+  approveInvestment as approveInvestmentTx,
+  InvestmentError,
+  requestInvestment as requestInvestmentTx,
+} from "./investment/investment.js";
 import { notifyGuardians, notifyMember } from "./notifications/messaging.js";
 import { sendDueReminders } from "./notifications/reminders.js";
 import {
@@ -295,6 +302,61 @@ export const onCashOutWritten = onDocumentWritten(
 );
 
 /**
+ * Poupança (#73): pedido de aporte/resgate criado -> notifica os responsáveis;
+ * `requested -> approved` / `requested -> rejected` -> notifica a criança.
+ */
+export const onInvestmentRequestWritten = onDocumentWritten(
+  {
+    document: "families/{familyId}/investmentRequests/{reqId}",
+    region: REGION,
+  },
+  async (event) => {
+    const { familyId, reqId } = event.params;
+    const before = event.data?.before.data();
+    const after = event.data?.after.data();
+    if (!after) return;
+    const db = getFirestore();
+    const memberId = after.memberId as string;
+    const isDeposit = after.kind === "deposit";
+    const points = (after.points as number | undefined) ?? 0;
+
+    if (!before) {
+      const name = await childName(db, familyId, memberId);
+      await notifyGuardians(db, familyId, "investment", {
+        title: "Pedido de poupança",
+        body: isDeposit
+          ? `${name} quer investir ${points} pontos.`
+          : `${name} quer resgatar a poupança.`,
+        data: { type: "investment", reqId },
+      });
+      return;
+    }
+
+    if (before.status === after.status) return;
+
+    if (after.status === "approved") {
+      const payout = (after.payoutPoints as number | undefined) ?? 0;
+      await notifyMember(db, familyId, memberId, "investment", {
+        title: isDeposit ? "Investimento feito 📈" : "Resgate feito 🎉",
+        body: isDeposit
+          ? `${points} pontos foram pra sua poupança.`
+          : `${payout} pontos voltaram pro seu saldo.`,
+        data: { type: "investment", reqId },
+      });
+    } else if (after.status === "rejected") {
+      const note = (after.note as string | undefined)?.trim();
+      await notifyMember(db, familyId, memberId, "investment", {
+        title: "Pedido de poupança recusado",
+        body: note
+          ? `Seu pedido foi recusado: ${note}`
+          : "Seu pedido foi recusado.",
+        data: { type: "investment", reqId },
+      });
+    }
+  },
+);
+
+/**
  * De hora em hora: para cada responsável, se a hora local da família bate com
  * o horário do lembrete configurado e há tarefas pendentes hoje, envia o
  * lembrete (uma vez por dia).
@@ -506,6 +568,70 @@ export const approveCashOut = onCall({ region: REGION }, async (request) => {
     return await approveCashOutTx(db, { familyId, cashOutId, deciderUid: uid });
   } catch (error) {
     if (error instanceof CashOutError) {
+      throw new HttpsError(error.code, error.message);
+    }
+    throw error;
+  }
+});
+
+/**
+ * Poupança (#73): a criança (ou o responsável) pede um aporte (`deposit`) ou o
+ * resgate total (`withdraw`). Só cria o pedido — o efeito é na aprovação.
+ */
+export const requestInvestment = onCall({ region: REGION }, async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid) throw new HttpsError("unauthenticated", "Faça login.");
+
+  const familyId = request.data?.familyId as string | undefined;
+  const kind = request.data?.kind as "deposit" | "withdraw" | undefined;
+  if (!familyId || (kind !== "deposit" && kind !== "withdraw")) {
+    throw new HttpsError("invalid-argument", "familyId e kind são obrigatórios.");
+  }
+
+  const db = getFirestore();
+  try {
+    const target = await resolveRedeemTarget(
+      db,
+      familyId,
+      uid,
+      request.data?.memberId as string | undefined,
+    );
+    return await requestInvestmentTx(db, {
+      familyId,
+      memberId: target.memberId,
+      memberUid: target.memberUid,
+      kind,
+      points: request.data?.points as number | undefined,
+      requestedByUid: uid,
+    });
+  } catch (error) {
+    if (error instanceof InvestmentError || error instanceof RedeemError) {
+      throw new HttpsError(error.code, error.message);
+    }
+    throw error;
+  }
+});
+
+/**
+ * Poupança (#73): o responsável aprova um pedido — débito (aporte) ou crédito
+ * com rendimento (resgate), transacional.
+ */
+export const approveInvestment = onCall({ region: REGION }, async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid) throw new HttpsError("unauthenticated", "Faça login.");
+
+  const familyId = request.data?.familyId as string | undefined;
+  const reqId = request.data?.reqId as string | undefined;
+  if (!familyId || !reqId) {
+    throw new HttpsError("invalid-argument", "familyId e reqId são obrigatórios.");
+  }
+
+  const db = getFirestore();
+  await assertGuardian(db, familyId, uid);
+  try {
+    return await approveInvestmentTx(db, { familyId, reqId, deciderUid: uid });
+  } catch (error) {
+    if (error instanceof InvestmentError) {
       throw new HttpsError(error.code, error.message);
     }
     throw error;

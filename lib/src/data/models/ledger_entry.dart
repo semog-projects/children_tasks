@@ -13,6 +13,7 @@ enum LedgerSourceType {
   taskInstance,
   reward,
   cashOut,
+  investment,
   manual;
 
   static LedgerSourceType fromName(String? value) => LedgerSourceType.values

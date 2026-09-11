@@ -1,12 +1,14 @@
 import 'package:childrentasks/src/data/firestore_refs.dart';
 import 'package:childrentasks/src/data/models/cash_out.dart';
 import 'package:childrentasks/src/data/models/family.dart';
+import 'package:childrentasks/src/data/models/investment_request.dart';
 import 'package:childrentasks/src/data/models/ledger_entry.dart';
 import 'package:childrentasks/src/data/models/member.dart';
 import 'package:childrentasks/src/data/models/reward.dart';
 import 'package:childrentasks/src/data/models/task.dart';
 import 'package:childrentasks/src/data/repositories/cash_out_repository.dart';
 import 'package:childrentasks/src/data/repositories/family_repository.dart';
+import 'package:childrentasks/src/data/repositories/investment_repository.dart';
 import 'package:childrentasks/src/data/repositories/ledger_repository.dart';
 import 'package:childrentasks/src/data/repositories/member_repository.dart';
 import 'package:childrentasks/src/data/repositories/reward_repository.dart';
@@ -167,6 +169,49 @@ void main() {
           .status,
       CashOutStatus.canceled,
     );
+  });
+
+  test('InvestmentRepository: fila, recusar, cancelar e lotes', () async {
+    final repo = InvestmentRepository(refs);
+    Future<String> seedReq(String memberId, String kind, String status) async {
+      final ref = await refs.investmentRequests('f1').add({
+        'memberId': memberId,
+        'memberUid': 'kid-$memberId',
+        'kind': kind,
+        if (kind == 'deposit') 'points': 100,
+        'status': status,
+      });
+      return ref.id;
+    }
+
+    final dep = await seedReq('m1', 'deposit', 'requested');
+    await seedReq('m1', 'withdraw', 'approved');
+    await seedReq('m2', 'deposit', 'requested');
+
+    final pending = await repo.watchPending('f1').first;
+    expect(pending.length, 2); // só os requested
+    expect(pending.every((r) => r.isRequested), isTrue);
+
+    await repo.reject('f1', dep, 'g1', note: 'Junte mais primeiro');
+    final byMember = await repo.watchRequestsForMember('f1', 'm1').first;
+    final rejected = byMember.firstWhere((r) => r.id == dep);
+    expect(rejected.status, InvestmentRequestStatus.rejected);
+    expect(rejected.note, 'Junte mais primeiro');
+
+    final other = await seedReq('m1', 'withdraw', 'requested');
+    await repo.cancel('f1', other);
+    expect(
+      (await repo.watchRequestsByUid('f1', 'kid-m1').first)
+          .firstWhere((r) => r.id == other)
+          .status,
+      InvestmentRequestStatus.canceled,
+    );
+
+    // lotes
+    await refs.investmentLots('f1', 'm1').add({'points': 30, 'memberUid': 'kid-m1'});
+    await refs.investmentLots('f1', 'm1').add({'points': 70, 'memberUid': 'kid-m1'});
+    final lots = await repo.watchLots('f1', 'm1').first;
+    expect(lots.fold<int>(0, (s, l) => s + l.points), 100);
   });
 
   test('modelos: round-trip de Task com recorrência semanal', () async {

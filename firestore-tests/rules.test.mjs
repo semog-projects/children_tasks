@@ -547,3 +547,92 @@ test('cashOuts: criança cancela o próprio requested, não o do irmão', async 
     }),
   );
 });
+
+// ---- poupança (#73) --------------------------------------------------
+
+test('família: responsável ajusta a taxa/carência da poupança; valores inválidos não', async () => {
+  const famRef = doc(guardianDb(), 'families', FAMILY);
+  await assertSucceeds(
+    updateDoc(famRef, { investmentWeeklyRatePct: 5, investmentGraceDays: 14 }),
+  );
+  await assertFails(updateDoc(famRef, { investmentWeeklyRatePct: 0 }));
+  await assertFails(updateDoc(famRef, { investmentGraceDays: -1 }));
+  await assertFails(
+    updateDoc(doc(childDb(), 'families', FAMILY), { investmentWeeklyRatePct: 9 }),
+  );
+});
+
+async function seedInvestReq(id, over = {}) {
+  await testEnv.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(
+      doc(ctx.firestore(), `families/${FAMILY}/investmentRequests/${id}`),
+      {
+        memberId: 'm-bia',
+        memberUid: CHILD,
+        kind: 'deposit',
+        points: 100,
+        status: 'requested',
+        ...over,
+      },
+    );
+  });
+}
+
+test('poupança: cliente não cria pedido nem lote', async () => {
+  await assertFails(
+    setDoc(doc(guardianDb(), `families/${FAMILY}/investmentRequests/x`), {
+      memberId: 'm-bia',
+      kind: 'deposit',
+      points: 10,
+      status: 'requested',
+    }),
+  );
+  await assertFails(
+    setDoc(doc(guardianDb(), `families/${FAMILY}/investments/m-bia/lots/l1`), {
+      points: 10,
+      memberUid: CHILD,
+    }),
+  );
+});
+
+test('poupança: responsável recusa; não pula para approved', async () => {
+  await seedInvestReq('r1');
+  await assertSucceeds(
+    updateDoc(doc(guardianDb(), `families/${FAMILY}/investmentRequests/r1`), {
+      status: 'rejected',
+      note: 'Junte mais',
+    }),
+  );
+  await seedInvestReq('r2');
+  await assertFails(
+    updateDoc(doc(guardianDb(), `families/${FAMILY}/investmentRequests/r2`), {
+      status: 'approved',
+    }),
+  );
+});
+
+test('poupança: criança cancela o próprio requested, não o do irmão; lê o próprio lote', async () => {
+  await seedInvestReq('r-bia');
+  await seedInvestReq('r-leo', { memberId: 'm-leo', memberUid: 'uid-leo' });
+
+  await assertSucceeds(
+    updateDoc(doc(childDb(), `families/${FAMILY}/investmentRequests/r-bia`), {
+      status: 'canceled',
+    }),
+  );
+  await assertFails(
+    updateDoc(doc(childDb(), `families/${FAMILY}/investmentRequests/r-leo`), {
+      status: 'canceled',
+    }),
+  );
+
+  await testEnv.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(
+      doc(ctx.firestore(), `families/${FAMILY}/investments/m-bia/lots/l1`),
+      { points: 30, memberUid: CHILD },
+    );
+  });
+  await assertSucceeds(
+    getDoc(doc(childDb(), `families/${FAMILY}/investments/m-bia/lots/l1`)),
+  );
+});

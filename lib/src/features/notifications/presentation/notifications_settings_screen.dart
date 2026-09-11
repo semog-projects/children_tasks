@@ -40,6 +40,12 @@ class NotificationsSettingsScreen extends ConsumerWidget {
             value: prefs.cashOut,
             onChanged: (v) => save(prefs.copyWith(cashOut: v)),
           ),
+          SwitchListTile(
+            title: const Text('Poupança'),
+            subtitle: const Text('Pedidos de investir/resgatar e o resultado'),
+            value: prefs.investment,
+            onChanged: (v) => save(prefs.copyWith(investment: v)),
+          ),
           const Divider(),
           SwitchListTile(
             title: const Text('Lembrete diário'),

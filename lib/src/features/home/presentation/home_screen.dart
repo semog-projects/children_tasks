@@ -13,6 +13,9 @@ import '../../cashout/presentation/cash_out_screen.dart';
 import '../../dashboard/presentation/dashboard_screen.dart';
 import '../../family/application/family_providers.dart';
 import '../../family/presentation/family_screen.dart';
+import '../../investment/application/investment_providers.dart';
+import '../../investment/presentation/investment_requests_screen.dart';
+import '../../investment/presentation/investment_screen.dart';
 import '../../points/application/points_providers.dart';
 import '../../points/presentation/points_adjustment_dialog.dart';
 import '../../rewards/presentation/catalog_screen.dart';
@@ -23,7 +26,7 @@ import '../../tasks/presentation/approvals_screen.dart';
 import '../../tasks/presentation/tasks_screen.dart';
 import '../../tasks/presentation/today_screen.dart';
 
-enum _HomeMenu { tasks, rewards, cashOuts, dashboard, family, signOut }
+enum _HomeMenu { tasks, rewards, cashOuts, investments, dashboard, family, signOut }
 
 class _MenuRow extends StatelessWidget {
   const _MenuRow(this.icon, this.label);
@@ -58,6 +61,9 @@ class HomeScreen extends ConsumerWidget {
       case _HomeMenu.cashOuts:
         nav.push(MaterialPageRoute<void>(
             builder: (_) => const CashOutRequestsScreen()));
+      case _HomeMenu.investments:
+        nav.push(MaterialPageRoute<void>(
+            builder: (_) => const InvestmentRequestsScreen()));
       case _HomeMenu.dashboard:
         nav.push(
             MaterialPageRoute<void>(builder: (_) => const DashboardScreen()));
@@ -75,6 +81,12 @@ class HomeScreen extends ConsumerWidget {
     final pendingCount = ref.watch(pendingApprovalsProvider).asData?.value.length ?? 0;
     final cashOutCount =
         ref.watch(pendingCashOutsProvider).asData?.value.length ?? 0;
+    final investmentCount = ref
+            .watch(pendingInvestmentRequestsProvider)
+            .asData
+            ?.value
+            .length ??
+        0;
 
     return Scaffold(
       appBar: AppBar(
@@ -115,6 +127,15 @@ class HomeScreen extends ConsumerWidget {
                   cashOutCount > 0
                       ? 'Trocas por dinheiro ($cashOutCount)'
                       : 'Trocas por dinheiro',
+                ),
+              ),
+              PopupMenuItem(
+                value: _HomeMenu.investments,
+                child: _MenuRow(
+                  Icons.trending_up,
+                  investmentCount > 0
+                      ? 'Poupança ($investmentCount)'
+                      : 'Poupança',
                 ),
               ),
               const PopupMenuItem(
@@ -269,17 +290,27 @@ class _ChildCard extends ConsumerWidget {
                   PopupMenuButton<String>(
                     tooltip: 'Mais ações de $name',
                     onSelected: (action) {
-                      if (action == 'adjust') {
-                        PointsAdjustmentDialog.show(context, child);
-                      } else if (action == 'cashout') {
-                        Navigator.of(context).push(
-                          MaterialPageRoute<void>(
-                            builder: (_) => CashOutScreen(
-                              memberId: child.id,
-                              childName: child.displayName,
+                      switch (action) {
+                        case 'adjust':
+                          PointsAdjustmentDialog.show(context, child);
+                        case 'cashout':
+                          Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => CashOutScreen(
+                                memberId: child.id,
+                                childName: child.displayName,
+                              ),
                             ),
-                          ),
-                        );
+                          );
+                        case 'invest':
+                          Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => InvestmentScreen(
+                                memberId: child.id,
+                                childName: child.displayName,
+                              ),
+                            ),
+                          );
                       }
                     },
                     itemBuilder: (_) => const [
@@ -291,6 +322,10 @@ class _ChildCard extends ConsumerWidget {
                         value: 'cashout',
                         child: _MenuRow(
                             Icons.savings_outlined, 'Trocar por dinheiro'),
+                      ),
+                      PopupMenuItem(
+                        value: 'invest',
+                        child: _MenuRow(Icons.trending_up, 'Investir pontos'),
                       ),
                     ],
                   ),

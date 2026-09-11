@@ -110,6 +110,24 @@ class FamilyController extends AsyncNotifier<void> {
     );
   }
 
+  /// Configuração da poupança: rendimento (%/semana) e carência (dias) (issue #73).
+  Future<void> setInvestmentConfig({
+    double? weeklyRatePct,
+    int? graceDays,
+  }) async {
+    final family = ref.read(currentFamilyProvider).asData?.value;
+    if (family == null) return;
+    if (weeklyRatePct != null && weeklyRatePct <= 0) return;
+    if (graceDays != null && graceDays < 0) return;
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(
+      () => ref.read(familyRepositoryProvider).update(family.copyWith(
+            investmentWeeklyRatePct: weeklyRatePct,
+            investmentGraceDays: graceDays,
+          )),
+    );
+  }
+
   /// Mantém o nome/foto do responsável logado atualizado no doc da família.
   Future<void> healOwnProfile() async {
     final user = ref.read(currentUserProvider);

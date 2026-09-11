@@ -12,6 +12,7 @@ export type PrefKey =
   | "approvalResult"
   | "redemption"
   | "cashOut"
+  | "investment"
   | "dailyReminder"
   | "taskApproved"
   | "taskRejected"
