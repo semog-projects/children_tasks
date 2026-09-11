@@ -234,24 +234,28 @@ class _ChildCard extends ConsumerWidget {
                   ChildAvatar(name: name, colorHex: colorHex),
                   const Gap.sm(),
                   Expanded(
-                    child: Text(
-                      name,
-                      style: theme.textTheme.titleMedium,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          name,
+                          style: theme.textTheme.titleMedium,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        if (balance != null)
+                          Text(
+                            '$balance pts',
+                            style: theme.textTheme.labelMedium?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                      ],
                     ),
                   ),
-                  if (balance != null) ...[
-                    const Gap.xs(),
-                    Text(
-                      '$balance pts',
-                      style: theme.textTheme.labelLarge?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
                   IconButton(
                     tooltip: 'Recompensas de $name',
                     icon: const Icon(Icons.card_giftcard),
