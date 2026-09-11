@@ -115,6 +115,42 @@ void main() {
     expect(find.text('1 de 2 tarefas hoje'), findsOneWidget);
   });
 
+  testWidgets('home: saldo grande + nome longo não estoura o card (#70)',
+      (tester) async {
+    final app = await buildTestApp(
+      auth: FakeAuthRepository(initialUser: FakeAuthRepository.user()),
+    );
+    final familyId = await seedFamily(app.db,
+        uid: 'uid-ana', childNames: ['Maria Aparecida dos Santos']);
+    final child = (await app.db
+            .collection('families')
+            .doc(familyId)
+            .collection('members')
+            .get())
+        .docs
+        .single;
+    await app.db.collection('families').doc(familyId).collection('ledger').add({
+      'memberId': child.id,
+      'type': 'earn',
+      'points': 999999,
+      'sourceType': 'taskInstance',
+      'createdByUid': 'system',
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+
+    await pumpSettled(tester, app.widget);
+
+    expect(tester.takeException(), isNull); // sem RenderFlex overflow
+    expect(find.text('999999 pts'), findsOneWidget);
+
+    // o nome no card não quebra linha: 1 linha + reticências
+    final nameText = tester.widget<Text>(
+      find.text('Maria Aparecida dos Santos').first,
+    );
+    expect(nameText.maxLines, 1);
+    expect(nameText.overflow, TextOverflow.ellipsis);
+  });
+
   testWidgets('home: arrastar pra baixo dispara o RefreshIndicator',
       (tester) async {
     final app = await buildTestApp(
