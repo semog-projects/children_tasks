@@ -4,6 +4,7 @@ import '../app/firebase/firebase_providers.dart';
 import 'firestore_refs.dart';
 import 'repositories/cash_out_repository.dart';
 import 'repositories/family_repository.dart';
+import 'repositories/investment_repository.dart';
 import 'repositories/ledger_repository.dart';
 import 'repositories/member_repository.dart';
 import 'repositories/redemption_repository.dart';
@@ -45,4 +46,8 @@ final ledgerRepositoryProvider = Provider<LedgerRepository>((ref) {
 
 final cashOutRepositoryProvider = Provider<CashOutRepository>((ref) {
   return CashOutRepository(ref.watch(firestoreRefsProvider));
+});
+
+final investmentRepositoryProvider = Provider<InvestmentRepository>((ref) {
+  return InvestmentRepository(ref.watch(firestoreRefsProvider));
 });

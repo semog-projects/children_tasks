@@ -8,6 +8,7 @@ import '../../../common/stat_card.dart';
 import '../../../common/sync/sync_banner.dart';
 import '../../auth/application/auth_providers.dart';
 import '../../cashout/presentation/cash_out_screen.dart';
+import '../../investment/presentation/investment_screen.dart';
 import '../../rewards/presentation/catalog_screen.dart';
 import '../../tasks/application/task_instances_providers.dart';
 import '../../tasks/presentation/instance_tile.dart';
@@ -54,6 +55,19 @@ class ChildHomeScreen extends ConsumerWidget {
             onPressed: () => Navigator.of(context).push(
               MaterialPageRoute<void>(
                 builder: (_) => CashOutScreen(
+                  memberId: memberId,
+                  childName: name,
+                  childMode: true,
+                ),
+              ),
+            ),
+          ),
+          IconButton(
+            tooltip: 'Poupança',
+            icon: const Icon(Icons.trending_up),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => InvestmentScreen(
                   memberId: memberId,
                   childName: name,
                   childMode: true,

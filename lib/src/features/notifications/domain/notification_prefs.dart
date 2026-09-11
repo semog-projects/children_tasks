@@ -7,6 +7,7 @@ class NotificationPrefs {
     this.approvalResult = true,
     this.redemption = true,
     this.cashOut = true,
+    this.investment = true,
     this.dailyReminder = true,
     this.reminderHour = 18,
     this.taskApproved = true,
@@ -22,6 +23,9 @@ class NotificationPrefs {
   /// Pedidos de troca de pontos por dinheiro (issue #66). Cobre os dois lados:
   /// responsável (novo pedido) e criança (aprovado/pago/recusado).
   final bool cashOut;
+
+  /// Poupança (issue #73): novo pedido (responsável) / aprovado/recusado (criança).
+  final bool investment;
 
   final bool dailyReminder;
 
@@ -40,6 +44,7 @@ class NotificationPrefs {
       approvalResult: m['approvalResult'] as bool? ?? true,
       redemption: m['redemption'] as bool? ?? true,
       cashOut: m['cashOut'] as bool? ?? true,
+      investment: m['investment'] as bool? ?? true,
       dailyReminder: m['dailyReminder'] as bool? ?? true,
       reminderHour: (m['reminderHour'] as num?)?.toInt() ?? 18,
       taskApproved: m['taskApproved'] as bool? ?? true,
@@ -53,6 +58,7 @@ class NotificationPrefs {
         'approvalResult': approvalResult,
         'redemption': redemption,
         'cashOut': cashOut,
+        'investment': investment,
         'dailyReminder': dailyReminder,
         'reminderHour': reminderHour,
         'taskApproved': taskApproved,
@@ -65,6 +71,7 @@ class NotificationPrefs {
     bool? approvalResult,
     bool? redemption,
     bool? cashOut,
+    bool? investment,
     bool? dailyReminder,
     int? reminderHour,
     bool? taskApproved,
@@ -76,6 +83,7 @@ class NotificationPrefs {
         approvalResult: approvalResult ?? this.approvalResult,
         redemption: redemption ?? this.redemption,
         cashOut: cashOut ?? this.cashOut,
+        investment: investment ?? this.investment,
         dailyReminder: dailyReminder ?? this.dailyReminder,
         reminderHour: reminderHour ?? this.reminderHour,
         taskApproved: taskApproved ?? this.taskApproved,

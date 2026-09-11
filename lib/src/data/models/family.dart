@@ -38,12 +38,18 @@ class Family {
     this.childUids = const [],
     required this.timezone,
     this.pointValueCents = defaultPointValueCents,
+    this.investmentWeeklyRatePct = defaultInvestmentWeeklyRatePct,
+    this.investmentGraceDays = defaultInvestmentGraceDays,
     this.createdAt,
     this.updatedAt,
   });
 
   /// Cotação padrão: R$ 0,016 por ponto (100 pts = R$ 1,60).
   static const double defaultPointValueCents = 1.6;
+
+  /// Poupança (issue #73): rendimento e carência padrão.
+  static const double defaultInvestmentWeeklyRatePct = 2.0;
+  static const int defaultInvestmentGraceDays = 7;
 
   final String id;
   final String name;
@@ -66,6 +72,11 @@ class Family {
   /// Quanto vale um ponto no câmbio, em centavos de BRL (issue #66). Editável
   /// pelo responsável na tela de Família; a Cloud Function lê deste doc.
   final double pointValueCents;
+
+  /// Poupança (issue #73): juros compostos por semana (%) e dias de carência
+  /// para o rendimento cheio. Editáveis pelo responsável; a Function lê daqui.
+  final double investmentWeeklyRatePct;
+  final int investmentGraceDays;
 
   final DateTime? createdAt;
   final DateTime? updatedAt;
@@ -93,6 +104,10 @@ class Family {
       timezone: data['timezone'] as String? ?? 'America/Sao_Paulo',
       pointValueCents:
           (data['pointValueCents'] as num?)?.toDouble() ?? defaultPointValueCents,
+      investmentWeeklyRatePct: (data['investmentWeeklyRatePct'] as num?)?.toDouble() ??
+          defaultInvestmentWeeklyRatePct,
+      investmentGraceDays: (data['investmentGraceDays'] as num?)?.toInt() ??
+          defaultInvestmentGraceDays,
       createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
       updatedAt: (data['updatedAt'] as Timestamp?)?.toDate(),
     );
@@ -114,6 +129,8 @@ class Family {
         'guardians': guardians.map((g) => g.toMap()).toList(),
         'timezone': timezone,
         'pointValueCents': pointValueCents,
+        'investmentWeeklyRatePct': investmentWeeklyRatePct,
+        'investmentGraceDays': investmentGraceDays,
       };
 
   Family copyWith({
@@ -123,6 +140,8 @@ class Family {
     List<String>? childUids,
     String? timezone,
     double? pointValueCents,
+    double? investmentWeeklyRatePct,
+    int? investmentGraceDays,
   }) =>
       Family(
         id: id,
@@ -132,6 +151,9 @@ class Family {
         childUids: childUids ?? this.childUids,
         timezone: timezone ?? this.timezone,
         pointValueCents: pointValueCents ?? this.pointValueCents,
+        investmentWeeklyRatePct:
+            investmentWeeklyRatePct ?? this.investmentWeeklyRatePct,
+        investmentGraceDays: investmentGraceDays ?? this.investmentGraceDays,
         createdAt: createdAt,
         updatedAt: updatedAt,
       );

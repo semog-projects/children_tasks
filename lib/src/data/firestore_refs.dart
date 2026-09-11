@@ -34,6 +34,13 @@ class FirestoreRefs {
   CollectionReference<Map<String, dynamic>> cashOuts(String familyId) =>
       family(familyId).collection('cashOuts');
 
+  CollectionReference<Map<String, dynamic>> investmentLots(
+          String familyId, String memberId) =>
+      family(familyId).collection('investments').doc(memberId).collection('lots');
+
+  CollectionReference<Map<String, dynamic>> investmentRequests(String familyId) =>
+      family(familyId).collection('investmentRequests');
+
   CollectionReference<Map<String, dynamic>> ledger(String familyId) =>
       family(familyId).collection('ledger');
 }
