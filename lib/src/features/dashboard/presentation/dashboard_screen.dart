@@ -103,7 +103,9 @@ class _ChildSummary extends ConsumerWidget {
                 const SizedBox(width: 8),
                 Text(
                   '$balance pts',
-                  style: theme.textTheme.titleMedium,
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
