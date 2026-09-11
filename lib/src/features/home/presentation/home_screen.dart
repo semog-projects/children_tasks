@@ -5,6 +5,7 @@ import '../../../common/child_avatar.dart';
 import '../../../common/pull_refresh.dart';
 import '../../../common/spacing.dart';
 import '../../../common/sync/sync_banner.dart';
+import '../../../data/models/family.dart';
 import '../../../data/models/member.dart';
 import '../../auth/application/auth_providers.dart';
 import '../../cashout/application/cashout_providers.dart';
@@ -87,6 +88,10 @@ class HomeScreen extends ConsumerWidget {
             ?.value
             .length ??
         0;
+    final rewardsOn = ref.watch(featureEnabledProvider(AppFeature.rewards));
+    final cashOutOn = ref.watch(featureEnabledProvider(AppFeature.cashOut));
+    final investmentOn =
+        ref.watch(featureEnabledProvider(AppFeature.investment));
 
     return Scaffold(
       appBar: AppBar(
@@ -116,28 +121,31 @@ class HomeScreen extends ConsumerWidget {
                 value: _HomeMenu.tasks,
                 child: _MenuRow(Icons.checklist_rounded, 'Definição de tarefas'),
               ),
-              const PopupMenuItem(
-                value: _HomeMenu.rewards,
-                child: _MenuRow(Icons.card_giftcard, 'Recompensas'),
-              ),
-              PopupMenuItem(
-                value: _HomeMenu.cashOuts,
-                child: _MenuRow(
-                  Icons.savings_outlined,
-                  cashOutCount > 0
-                      ? 'Trocas por dinheiro ($cashOutCount)'
-                      : 'Trocas por dinheiro',
+              if (rewardsOn)
+                const PopupMenuItem(
+                  value: _HomeMenu.rewards,
+                  child: _MenuRow(Icons.card_giftcard, 'Recompensas'),
                 ),
-              ),
-              PopupMenuItem(
-                value: _HomeMenu.investments,
-                child: _MenuRow(
-                  Icons.trending_up,
-                  investmentCount > 0
-                      ? 'Poupança ($investmentCount)'
-                      : 'Poupança',
+              if (cashOutOn)
+                PopupMenuItem(
+                  value: _HomeMenu.cashOuts,
+                  child: _MenuRow(
+                    Icons.savings_outlined,
+                    cashOutCount > 0
+                        ? 'Trocas por dinheiro ($cashOutCount)'
+                        : 'Trocas por dinheiro',
+                  ),
                 ),
-              ),
+              if (investmentOn)
+                PopupMenuItem(
+                  value: _HomeMenu.investments,
+                  child: _MenuRow(
+                    Icons.trending_up,
+                    investmentCount > 0
+                        ? 'Poupança ($investmentCount)'
+                        : 'Poupança',
+                  ),
+                ),
               const PopupMenuItem(
                 value: _HomeMenu.dashboard,
                 child: _MenuRow(Icons.insights, 'Painel'),
@@ -234,6 +242,11 @@ class _ChildCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final instances = ref.watch(childTodayInstancesProvider(childId)).asData?.value;
     final balance = ref.watch(childBalanceProvider(childId)).asData?.value;
+    final rewardsOn = ref.watch(featureEnabledProvider(AppFeature.rewards));
+    final cashOutOn = ref.watch(featureEnabledProvider(AppFeature.cashOut));
+    final investmentOn =
+        ref.watch(featureEnabledProvider(AppFeature.investment));
+    final adjustOn = ref.watch(featureEnabledProvider(AppFeature.pointsAdjust));
 
     final done = instances?.where((i) => i.isApproved).length;
     final total = instances?.length;
@@ -277,16 +290,18 @@ class _ChildCard extends ConsumerWidget {
                       ],
                     ),
                   ),
-                  IconButton(
-                    tooltip: 'Recompensas de $name',
-                    icon: const Icon(Icons.card_giftcard),
-                    onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) =>
-                            CatalogScreen(memberId: childId, childName: name),
+                  if (rewardsOn)
+                    IconButton(
+                      tooltip: 'Recompensas de $name',
+                      icon: const Icon(Icons.card_giftcard),
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) =>
+                              CatalogScreen(memberId: childId, childName: name),
+                        ),
                       ),
                     ),
-                  ),
+                  if (adjustOn || cashOutOn || investmentOn)
                   PopupMenuButton<String>(
                     tooltip: 'Mais ações de $name',
                     onSelected: (action) {
@@ -313,20 +328,23 @@ class _ChildCard extends ConsumerWidget {
                           );
                       }
                     },
-                    itemBuilder: (_) => const [
-                      PopupMenuItem(
-                        value: 'adjust',
-                        child: _MenuRow(Icons.tune, 'Ajustar pontos'),
-                      ),
-                      PopupMenuItem(
-                        value: 'cashout',
-                        child: _MenuRow(
-                            Icons.savings_outlined, 'Trocar por dinheiro'),
-                      ),
-                      PopupMenuItem(
-                        value: 'invest',
-                        child: _MenuRow(Icons.trending_up, 'Investir pontos'),
-                      ),
+                    itemBuilder: (_) => [
+                      if (adjustOn)
+                        const PopupMenuItem(
+                          value: 'adjust',
+                          child: _MenuRow(Icons.tune, 'Ajustar pontos'),
+                        ),
+                      if (cashOutOn)
+                        const PopupMenuItem(
+                          value: 'cashout',
+                          child: _MenuRow(
+                              Icons.savings_outlined, 'Trocar por dinheiro'),
+                        ),
+                      if (investmentOn)
+                        const PopupMenuItem(
+                          value: 'invest',
+                          child: _MenuRow(Icons.trending_up, 'Investir pontos'),
+                        ),
                     ],
                   ),
                 ],

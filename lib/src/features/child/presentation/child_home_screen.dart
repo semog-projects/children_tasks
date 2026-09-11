@@ -6,8 +6,10 @@ import '../../../common/pull_refresh.dart';
 import '../../../common/spacing.dart';
 import '../../../common/stat_card.dart';
 import '../../../common/sync/sync_banner.dart';
+import '../../../data/models/family.dart';
 import '../../auth/application/auth_providers.dart';
 import '../../cashout/presentation/cash_out_screen.dart';
+import '../../family/application/family_providers.dart';
 import '../../investment/presentation/investment_screen.dart';
 import '../../rewards/presentation/catalog_screen.dart';
 import '../../tasks/application/task_instances_providers.dart';
@@ -30,51 +32,58 @@ class ChildHomeScreen extends ConsumerWidget {
     final balance = ref.watch(myChildBalanceProvider).asData?.value ?? 0;
     final instances = ref.watch(myChildInstancesProvider);
     final signingOut = ref.watch(authControllerProvider).isLoading;
+    final rewardsOn = ref.watch(featureEnabledProvider(AppFeature.rewards));
+    final cashOutOn = ref.watch(featureEnabledProvider(AppFeature.cashOut));
+    final investmentOn =
+        ref.watch(featureEnabledProvider(AppFeature.investment));
     final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(
         title: Text('Olá, $name!'),
         actions: [
-          IconButton(
-            tooltip: 'Recompensas',
-            icon: const Icon(Icons.card_giftcard),
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) => CatalogScreen(
-                  memberId: memberId,
-                  childName: name,
-                  childMode: true,
+          if (rewardsOn)
+            IconButton(
+              tooltip: 'Recompensas',
+              icon: const Icon(Icons.card_giftcard),
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => CatalogScreen(
+                    memberId: memberId,
+                    childName: name,
+                    childMode: true,
+                  ),
                 ),
               ),
             ),
-          ),
-          IconButton(
-            tooltip: 'Trocar por dinheiro',
-            icon: const Icon(Icons.savings_outlined),
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) => CashOutScreen(
-                  memberId: memberId,
-                  childName: name,
-                  childMode: true,
+          if (cashOutOn)
+            IconButton(
+              tooltip: 'Trocar por dinheiro',
+              icon: const Icon(Icons.savings_outlined),
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => CashOutScreen(
+                    memberId: memberId,
+                    childName: name,
+                    childMode: true,
+                  ),
                 ),
               ),
             ),
-          ),
-          IconButton(
-            tooltip: 'Poupança',
-            icon: const Icon(Icons.trending_up),
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) => InvestmentScreen(
-                  memberId: memberId,
-                  childName: name,
-                  childMode: true,
+          if (investmentOn)
+            IconButton(
+              tooltip: 'Poupança',
+              icon: const Icon(Icons.trending_up),
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => InvestmentScreen(
+                    memberId: memberId,
+                    childName: name,
+                    childMode: true,
+                  ),
                 ),
               ),
             ),
-          ),
           IconButton(
             tooltip: 'Notificações',
             icon: const Icon(Icons.notifications_outlined),
@@ -127,7 +136,7 @@ class ChildHomeScreen extends ConsumerWidget {
                         progress: list.isEmpty ? null : done / list.length,
                       ),
                       const Gap.sm(),
-                      const _NextRewardCard(),
+                      if (rewardsOn) const _NextRewardCard(),
                       if (list.isNotEmpty) ...[
                         const Gap.md(),
                         Text('Tarefas de hoje',

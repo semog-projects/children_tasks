@@ -25,6 +25,10 @@ import { logger } from "firebase-functions/v2";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 
 import {
+  assertFeatureEnabled,
+  FeatureDisabledError,
+} from "./family/features.js";
+import {
   acceptInvite,
   createInvite,
   InviteError,
@@ -490,6 +494,7 @@ export const redeemReward = onCall({ region: REGION }, async (request) => {
 
   const db = getFirestore();
   try {
+    await assertFeatureEnabled(db, familyId, "rewards");
     const target = await resolveRedeemTarget(
       db,
       familyId,
@@ -504,7 +509,7 @@ export const redeemReward = onCall({ region: REGION }, async (request) => {
       requestedByUid: uid,
     });
   } catch (error) {
-    if (error instanceof RedeemError) {
+    if (error instanceof RedeemError || error instanceof FeatureDisabledError) {
       throw new HttpsError(error.code, error.message);
     }
     throw error;
@@ -527,6 +532,7 @@ export const requestCashOut = onCall({ region: REGION }, async (request) => {
 
   const db = getFirestore();
   try {
+    await assertFeatureEnabled(db, familyId, "cashOut");
     const target = await resolveRedeemTarget(
       db,
       familyId,
@@ -541,7 +547,11 @@ export const requestCashOut = onCall({ region: REGION }, async (request) => {
       requestedByUid: uid,
     });
   } catch (error) {
-    if (error instanceof CashOutError || error instanceof RedeemError) {
+    if (
+      error instanceof CashOutError ||
+      error instanceof RedeemError ||
+      error instanceof FeatureDisabledError
+    ) {
       throw new HttpsError(error.code, error.message);
     }
     throw error;
@@ -590,6 +600,7 @@ export const requestInvestment = onCall({ region: REGION }, async (request) => {
 
   const db = getFirestore();
   try {
+    await assertFeatureEnabled(db, familyId, "investment");
     const target = await resolveRedeemTarget(
       db,
       familyId,
@@ -605,7 +616,11 @@ export const requestInvestment = onCall({ region: REGION }, async (request) => {
       requestedByUid: uid,
     });
   } catch (error) {
-    if (error instanceof InvestmentError || error instanceof RedeemError) {
+    if (
+      error instanceof InvestmentError ||
+      error instanceof RedeemError ||
+      error instanceof FeatureDisabledError
+    ) {
       throw new HttpsError(error.code, error.message);
     }
     throw error;

@@ -1,5 +1,39 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+/// Funcionalidades que o responsável pode ligar/desligar por família (issue
+/// #75). Guardadas em `family.disabledFeatures` (só as OFF); vazio = tudo
+/// ligado, então funcionalidade nova entra ligada por padrão.
+enum AppFeature {
+  rewards,
+  cashOut,
+  investment,
+  pointsAdjust;
+
+  static AppFeature? fromName(String? value) {
+    for (final f in AppFeature.values) {
+      if (f.name == value) return f;
+    }
+    return null;
+  }
+
+  /// Rótulo pt-BR para a tela de configuração.
+  String get label => switch (this) {
+        AppFeature.rewards => 'Recompensas',
+        AppFeature.cashOut => 'Trocar pontos por dinheiro',
+        AppFeature.investment => 'Poupança (investir pontos)',
+        AppFeature.pointsAdjust => 'Ajuste manual de pontos',
+      };
+
+  String get description => switch (this) {
+        AppFeature.rewards => 'Catálogo de recompensas e resgate com pontos',
+        AppFeature.cashOut => 'A criança troca pontos por dinheiro de verdade',
+        AppFeature.investment =>
+          'A criança investe pontos que rendem com o tempo',
+        AppFeature.pointsAdjust =>
+          'Você desconta ou adiciona pontos manualmente, com um motivo',
+      };
+}
+
 /// Dados de exibição de um responsável, desnormalizados no doc da família
 /// (o `users/{uid}` só é legível pelo próprio dono).
 class GuardianRef {
@@ -40,6 +74,7 @@ class Family {
     this.pointValueCents = defaultPointValueCents,
     this.investmentWeeklyRatePct = defaultInvestmentWeeklyRatePct,
     this.investmentGraceDays = defaultInvestmentGraceDays,
+    this.disabledFeatures = const {},
     this.createdAt,
     this.updatedAt,
   });
@@ -78,8 +113,13 @@ class Family {
   final double investmentWeeklyRatePct;
   final int investmentGraceDays;
 
+  /// Funcionalidades desligadas pelo responsável (issue #75). Vazio = tudo on.
+  final Set<AppFeature> disabledFeatures;
+
   final DateTime? createdAt;
   final DateTime? updatedAt;
+
+  bool isEnabled(AppFeature feature) => !disabledFeatures.contains(feature);
 
   GuardianRef? guardianFor(String uid) {
     for (final g in guardians) {
@@ -108,6 +148,10 @@ class Family {
           defaultInvestmentWeeklyRatePct,
       investmentGraceDays: (data['investmentGraceDays'] as num?)?.toInt() ??
           defaultInvestmentGraceDays,
+      disabledFeatures: {
+        for (final v in (data['disabledFeatures'] as List<dynamic>? ?? const []))
+          ?AppFeature.fromName(v as String?),
+      },
       createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
       updatedAt: (data['updatedAt'] as Timestamp?)?.toDate(),
     );
@@ -131,6 +175,7 @@ class Family {
         'pointValueCents': pointValueCents,
         'investmentWeeklyRatePct': investmentWeeklyRatePct,
         'investmentGraceDays': investmentGraceDays,
+        'disabledFeatures': [for (final f in disabledFeatures) f.name],
       };
 
   Family copyWith({
@@ -142,6 +187,7 @@ class Family {
     double? pointValueCents,
     double? investmentWeeklyRatePct,
     int? investmentGraceDays,
+    Set<AppFeature>? disabledFeatures,
   }) =>
       Family(
         id: id,
@@ -154,6 +200,7 @@ class Family {
         investmentWeeklyRatePct:
             investmentWeeklyRatePct ?? this.investmentWeeklyRatePct,
         investmentGraceDays: investmentGraceDays ?? this.investmentGraceDays,
+        disabledFeatures: disabledFeatures ?? this.disabledFeatures,
         createdAt: createdAt,
         updatedAt: updatedAt,
       );

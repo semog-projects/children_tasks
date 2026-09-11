@@ -95,7 +95,9 @@ service cloud.firestore {
                 && request.resource.data.investmentWeeklyRatePct > 0))
         && (!('investmentGraceDays' in request.resource.data)
             || (request.resource.data.investmentGraceDays is int
-                && request.resource.data.investmentGraceDays >= 0));
+                && request.resource.data.investmentGraceDays >= 0))
+        && (!('disabledFeatures' in request.resource.data)
+            || request.resource.data.disabledFeatures is list);
 
       allow delete: if false;
 
